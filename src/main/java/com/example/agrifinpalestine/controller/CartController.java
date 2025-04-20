@@ -20,6 +20,7 @@ import com.example.agrifinpalestine.service.CartItemService;
 import com.example.agrifinpalestine.service.CartService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -118,7 +119,7 @@ public class CartController {
      */
     @PostMapping("/add")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<?> addToCart(@RequestBody CartItemRequest cartItemRequest, HttpServletRequest request) {
+    public ResponseEntity<?> addToCart(@Valid @RequestBody CartItemRequest cartItemRequest, HttpServletRequest request) {
         try {
             // Validate token
             if (!cartSecurityUtils.validateToken(request)) {
@@ -137,10 +138,6 @@ public class CartController {
         } catch (UnauthorizedAccessException e) {
             logger.warn("Unauthorized access: {}", e.getMessage());
             return cartSecurityUtils.createUnauthorizedResponse(e.getMessage());
-        } catch (ProductAlreadyInCartException e) {
-            logger.warn("Product already in cart: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, e.getMessage(), e.getExistingItem()));
         } catch (InsufficientInventoryException e) {
             logger.warn("Insufficient inventory: {}", e.getMessage());
             return ResponseEntity.badRequest()

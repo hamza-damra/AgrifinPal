@@ -1208,6 +1208,9 @@ async function updateCartCount(forceRefresh = false) {
     }
 }
 
+// Make the function globally accessible
+window.updateCartCount = updateCartCount;
+
 /**
  * Show a notification
  * @param {string} message - The message to show

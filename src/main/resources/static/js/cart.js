@@ -20,6 +20,20 @@ let updateQueue = {};
 let updateTimeout = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Dynamically load cart-count.js if it doesn't exist
+    if (typeof window.updateCartCount !== 'function') {
+        console.log('Loading cart-count.js dynamically');
+        const script = document.createElement('script');
+        script.src = '/js/cart-count.js';
+        script.onload = function() {
+            console.log('cart-count.js loaded successfully');
+            if (typeof window.updateCartCount === 'function') {
+                window.updateCartCount(true);
+            }
+        };
+        document.head.appendChild(script);
+    }
+
     // Check if we're coming from a successful payment
     const cartCleared = localStorage.getItem('cart_cleared');
     if (cartCleared === 'true') {
@@ -28,6 +42,12 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.removeItem('cart_cleared');
         // Force refresh cart data
         loadCart(true);
+    }
+
+    // Update cart count in header if the function exists
+    if (typeof window.updateCartCount === 'function') {
+        console.log('Updating cart count in header');
+        window.updateCartCount(true);
     }
 
     // Initialize tooltips

@@ -11,6 +11,19 @@ let selectedRating = 0;
 let cartItem = null; // Store cart item if product is already in cart
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Dynamically load cart-count.js if it doesn't exist
+    if (typeof window.updateCartCount !== 'function') {
+        console.log('Loading cart-count.js dynamically');
+        const script = document.createElement('script');
+        script.src = '/js/cart-count.js';
+        script.onload = function() {
+            console.log('cart-count.js loaded successfully');
+            if (typeof window.updateCartCount === 'function') {
+                window.updateCartCount(true);
+            }
+        };
+        document.head.appendChild(script);
+    }
     // Initialize product details page
     initProductDetailsPage();
 
@@ -966,6 +979,12 @@ async function addToCart() {
 
             // Show success notification
             showCartNotification('Product added to cart successfully!');
+
+            // Update cart count in header if the function exists
+            if (typeof window.updateCartCount === 'function') {
+                console.log('Updating cart count in header after adding product');
+                window.updateCartCount(true);
+            }
 
             // Set up the View Cart button
             setupViewCartButton();

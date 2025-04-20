@@ -70,7 +70,7 @@ public class CartItemServiceImpl implements CartItemService, CartService {
      * @return The added cart item
      */
     @Override
-    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public CartItemResponse addToCart(Integer userId, CartItemRequest request) {
         logger.info("Adding product {} to cart for user {}", request.getProductId(), userId);
 
@@ -108,11 +108,36 @@ public class CartItemServiceImpl implements CartItemService, CartService {
             // Check if product already exists in cart
             Optional<CartItem> existingCartItem = cartItemRepository.findByCartCartIdAndProductProductId(cart.getCartId(), product.getProductId());
 
-            // If product already exists in cart, throw an exception with the existing item data
+            // If product already exists in cart, update the quantity instead of throwing an exception
             if (existingCartItem.isPresent()) {
                 CartItem existingItem = existingCartItem.get();
-                CartItemResponse existingItemResponse = convertToCartItemResponse(existingItem);
-                throw new ProductAlreadyInCartException(request.getProductId(), existingItemResponse);
+
+                // Calculate new quantity
+                int newQuantity = existingItem.getQuantity() + request.getQuantity();
+
+                // Check if there's enough inventory for the new total quantity
+                if (product.getQuantity() < newQuantity) {
+                    throw new InsufficientInventoryException(
+                            request.getProductId(),
+                            newQuantity,
+                            product.getQuantity()
+                    );
+                }
+
+                // Update the quantity
+                existingItem.setQuantity(newQuantity);
+                existingItem.setUpdatedAt(LocalDateTime.now());
+
+                // Save the updated cart item
+                CartItem updatedItem = cartItemRepository.save(existingItem);
+
+                // Update cart totals
+                updateCartTotals(cart);
+
+                // Return the updated item
+                logger.info("Updated quantity of existing cart item {} for product {} to {}", 
+                        updatedItem.getCartItemId(), product.getProductId(), newQuantity);
+                return convertToCartItemResponse(updatedItem);
             }
 
             // Create new cart item

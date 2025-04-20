@@ -3,6 +3,19 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Dynamically load cart-count.js if it doesn't exist
+    if (typeof window.updateCartCount !== 'function') {
+        console.log('Loading cart-count.js dynamically');
+        const script = document.createElement('script');
+        script.src = '/js/cart-count.js';
+        script.onload = function() {
+            console.log('cart-count.js loaded successfully');
+            if (typeof window.updateCartCount === 'function') {
+                window.updateCartCount(true);
+            }
+        };
+        document.head.appendChild(script);
+    }
     // Initialize product page
     initProductPage();
 });
@@ -332,6 +345,12 @@ async function handleAddToCart() {
         if (result.success) {
             // Show success notification
             showCartNotification();
+
+            // Update cart count in header if the function exists
+            if (typeof window.updateCartCount === 'function') {
+                console.log('Updating cart count in header after adding product');
+                window.updateCartCount(true);
+            }
         } else {
             // Show error message
             alert(result.message || 'Failed to add product to cart.');
