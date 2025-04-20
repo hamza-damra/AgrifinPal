@@ -67,27 +67,13 @@ git clone https://github.com/hamza-damra/AgrifinPal.git
 cd AgriFinPalestine
 ```
 
-2. Set up environment variables:
-   - Copy `.env.example` to `.env` and fill in your values
-   - OR create an `application-dev.properties` file based on `application.properties.example`
-
-```bash
-# Option 1: Using .env file (recommended)
-cp .env.example .env
-# Edit .env with your values
-
-# Option 2: Using application-dev.properties
-cp src/main/resources/application.properties src/main/resources/application-dev.properties
-# Edit application-dev.properties with your values
-```
+2. Set up for local development:
+   - The project includes an `application-local.properties` file with default values for local development
 
 3. Run the application
 ```bash
-# If using .env file
-export $(cat .env | xargs) && mvn spring-boot:run
-
-# If using application-dev.properties
-mvn spring-boot:run -Dspring.profiles.active=dev
+# Run with local profile
+mvn spring-boot:run -Dspring.profiles.active=local
 ```
 
 > **IMPORTANT**: Never commit sensitive information like API keys, passwords, or secrets to version control. Always use environment variables or excluded properties files.
