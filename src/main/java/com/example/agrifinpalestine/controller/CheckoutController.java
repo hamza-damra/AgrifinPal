@@ -96,18 +96,14 @@ public class CheckoutController {
                     .multiply(BigDecimal.valueOf(100))
                     .longValue();
 
-            // Create payment intent using StripeService
-            PaymentIntent paymentIntent = stripeService.createPaymentIntent(totalCents, "ils");
-
-            // Add metadata to the payment intent
-            Map<String, Object> metadata = new HashMap<>();
+            // Create metadata for the payment intent
+            Map<String, String> metadata = new HashMap<>();
             metadata.put("userId", userId.toString());
             metadata.put("cartId", cart.getCartId().toString());
-            metadata.put("email", userDetails.getEmail());
             metadata.put("description", "Order from AgriFinPalestine");
 
-            // Update the payment intent with metadata
-            paymentIntent.update(metadata);
+            // Create payment intent with metadata included
+            PaymentIntent paymentIntent = stripeService.createPaymentIntent(totalCents, "ils", metadata);
 
             Map<String, Object> response = new HashMap<>();
             response.put("clientSecret", paymentIntent.getClientSecret());

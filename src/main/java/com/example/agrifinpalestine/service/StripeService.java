@@ -38,6 +38,27 @@ public class StripeService {
     }
 
     /**
+     * Create a payment intent with metadata
+     * @param amount The amount to charge in cents
+     * @param currency The currency to use
+     * @param metadata The metadata to add to the payment intent
+     * @return The created payment intent
+     * @throws StripeException If there is an error creating the payment intent
+     */
+    public PaymentIntent createPaymentIntent(Long amount, String currency, Map<String, String> metadata) throws StripeException {
+        Map<String, Object> params = new HashMap<>();
+        params.put("amount", amount);
+        params.put("currency", currency);
+        params.put("payment_method_types", new String[]{"card"});
+
+        if (metadata != null && !metadata.isEmpty()) {
+            params.put("metadata", metadata);
+        }
+
+        return PaymentIntent.create(params);
+    }
+
+    /**
      * Create a customer in Stripe
      * @param email The customer's email
      * @param name The customer's name
@@ -48,7 +69,7 @@ public class StripeService {
         Map<String, Object> customerParams = new HashMap<>();
         customerParams.put("email", email);
         customerParams.put("name", name);
-        
+
         return Customer.create(customerParams);
     }
 
@@ -67,8 +88,22 @@ public class StripeService {
         chargeParams.put("currency", currency);
         chargeParams.put("description", description);
         chargeParams.put("source", token);
-        
+
         return Charge.create(chargeParams);
+    }
+
+    /**
+     * Update a payment intent with metadata
+     * @param paymentIntent The payment intent to update
+     * @param metadata The metadata to add to the payment intent
+     * @return The updated payment intent
+     * @throws StripeException If there is an error updating the payment intent
+     */
+    public PaymentIntent updatePaymentIntentMetadata(PaymentIntent paymentIntent, Map<String, String> metadata) throws StripeException {
+        Map<String, Object> updateParams = new HashMap<>();
+        updateParams.put("metadata", metadata);
+
+        return paymentIntent.update(updateParams);
     }
 
     /**
