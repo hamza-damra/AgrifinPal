@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - AgriFinPal</title>
+    <meta name="description" content="Detailed product information page">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/colors.css">
+    <script src="/js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="/css/product-details.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Language scripts (English only) -->
+    <script src="/js/i18n/en.js"></script>
+    <script src="/js/i18n/i18n.js"></script>
+    <script src="/js/cart-api.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrf-token" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}" />
+
+    <!-- Product Details Page -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading State -->
+        <div id="loading-state" class="flex flex-col items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
+            <p class="text-gray-600" data-i18n="product.loading">Loading product details...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="hidden bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 text-center">
+            <i class="fas fa-exclamation-circle text-3xl mb-3"></i>
+            <h2 class="text-xl font-bold mb-2" data-i18n="product.notFound">Product Not Found</h2>
+            <p id="error-message" class="mb-4" data-i18n="product.errorLoading">We couldn't find the product you're looking for.</p>
+            <a href="/marketplace" class="inline-flex items-center text-red-600 hover:text-red-700">
+                <i class="fas fa-arrow-left mr-2"></i>
+                <span data-i18n="product.backToMarketplace">Return to marketplace</span>
+            </a>
+        </div>
+
+        <!-- Product Content -->
+        <div id="product-content" class="hidden">
+            <!-- Back button -->
+            <a href="/marketplace" class="inline-flex items-center text-green-600 hover:text-green-700 mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                <span data-i18n="product.backToMarketplace">Back to marketplace</span>
+            </a>
+
+            <!-- Product section -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="md:flex">
+                    <!-- Product image -->
+                    <div class="md:w-1/2 p-6">
+                        <img id="product-image" src="https://picsum.photos/800/600?random=1" alt="Product Image" class="w-full h-auto rounded-lg" loading="lazy">
+                    </div>
+
+                    <!-- Product details -->
+                    <div class="md:w-1/2 p-6">
+                        <div class="flex items-center mb-2">
+                            <span id="organic-badge" class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded hidden">Organic</span>
+                            <span id="availability-badge" class="text-gray-500 text-sm ml-2">In Stock</span>
+                        </div>
+
+                        <h1 id="product-name" class="text-3xl font-bold text-gray-900 mb-2">Product Name</h1>
+
+                        <div class="flex items-center mb-4">
+                            <div id="rating-stars" class="flex text-yellow-400">
+                                <!-- Stars will be added dynamically -->
+                            </div>
+                            <span id="review-count" class="text-gray-600 ml-2">(0 reviews)</span>
+                        </div>
+
+                        <p id="product-description" class="text-gray-700 mb-6">Product description loading...</p>
+
+                        <div class="mb-6">
+                            <span id="product-price" class="text-3xl font-bold text-gray-900">$0.00</span>
+                            <span id="product-unit" class="text-sm text-gray-500 ml-1">per unit</span>
+                        </div>
+
+                        <p class="text-gray-600 mb-4">
+                            <span class="font-medium" data-i18n="product.availability">Availability:</span>
+                            <span id="product-availability">0 units available</span>
+                        </p>
+
+                        <div class="flex flex-col sm:flex-row sm:items-end mt-4">
+                            <div class="w-full sm:w-24 mb-3 sm:mb-0">
+                                <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1" id="quantity-label" data-i18n="product.quantity">Quantity</label>
+                                <input
+                                    type="number"
+                                    id="quantity"
+                                    min="1"
+                                    max="50"
+                                    value="1"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                >
+                            </div>
+
+                            <button id="add-to-cart-btn" class="sm:ml-4 flex-grow bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-md font-bold transition-colors flex items-center justify-center" style="background-color: var(--primary);" onmouseover="this.style.backgroundColor=getComputedStyle(document.documentElement).getPropertyValue('--primary-dark')" onmouseout="this.style.backgroundColor=getComputedStyle(document.documentElement).getPropertyValue('--primary')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                                </svg>
+                                <span data-i18n="product.addToCart">Add to Cart</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product details tabs -->
+            <div class="mt-8">
+                <div class="border-b border-gray-200">
+                    <nav class="flex -mb-px">
+                        <button id="tab-details" class="tab-button active py-4 px-6 border-b-2 border-green-500 font-medium text-green-600">
+                            Details
+                        </button>
+                        <button id="tab-reviews" class="tab-button py-4 px-6 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                            Reviews
+                        </button>
+                        <button id="tab-seller" class="tab-button py-4 px-6 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                            Seller Information
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab content -->
+                <div class="py-6">
+                    <!-- Details tab -->
+                    <div id="content-details" class="tab-content">
+                        <div class="prose max-w-none">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Product Details</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Specifications</h4>
+                                    <ul class="mt-2 space-y-2 text-gray-600">
+                                        <li class="flex items-start">
+                                            <span class="font-medium w-32">Category:</span>
+                                            <span id="product-category">-</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="font-medium w-32">Organic:</span>
+                                            <span id="product-organic">-</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="font-medium w-32">Unit:</span>
+                                            <span id="product-unit-detail">-</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Additional Information</h4>
+                                    <ul class="mt-2 space-y-2 text-gray-600">
+                                        <li class="flex items-start">
+                                            <span class="font-medium w-32">Store:</span>
+                                            <span id="product-store">-</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="font-medium w-32">Added on:</span>
+                                            <span id="product-created-at">-</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="font-medium w-32">Last updated:</span>
+                                            <span id="product-updated-at">-</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reviews tab -->
+                    <div id="content-reviews" class="tab-content hidden">
+                        <div class="space-y-6">
+                            <h3 class="text-lg font-medium text-gray-900">Customer Reviews</h3>
+
+                            <!-- Reviews summary -->
+                            <div class="flex items-center">
+                                <div class="flex items-center">
+                                    <div id="average-rating-stars" class="flex text-yellow-400">
+                                        <!-- Stars will be added dynamically -->
+                                    </div>
+                                    <span id="average-rating" class="ml-2 text-gray-900 font-medium">0.0</span>
+                                </div>
+                                <span class="mx-2 text-gray-500">•</span>
+                                <span id="total-reviews" class="text-gray-500">0 reviews</span>
+                            </div>
+
+                            <!-- Write review button -->
+                            <div>
+                                <button id="write-review-btn" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                                        <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
+                                    </svg>
+                                    Write a Review
+                                </button>
+                            </div>
+
+                            <!-- Reviews list -->
+                            <div id="reviews-list" class="space-y-6">
+                                <!-- Reviews will be loaded here dynamically -->
+                                <div class="text-center py-8 text-gray-500">
+                                    No reviews yet. Be the first to review this product!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seller tab -->
+                    <div id="content-seller" class="tab-content hidden">
+                        <div class="space-y-6">
+                            <h3 class="text-lg font-medium text-gray-900">Seller Information</h3>
+
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h4 id="store-name" class="text-lg font-medium text-gray-900">Store Name</h4>
+                                        <p id="store-location" class="text-gray-500">Location</p>
+                                    </div>
+                                </div>
+
+                                <p id="store-description" class="text-gray-600 mb-4">Store description loading...</p>
+
+                                <a id="store-link" href="#" class="inline-flex items-center text-green-600 hover:text-green-700">
+                                    <span>Visit Store</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Related products -->
+            <div class="mt-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">You might also like</h2>
+                <div id="related-products" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Related products will be loaded here dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="review-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg font-medium leading-6 text-gray-900">Write a Review</h3>
+                                <div class="mt-4">
+                                    <form id="review-form">
+                                        <div class="mb-4">
+                                            <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                                            <div class="flex items-center">
+                                                <div id="rating-input" class="flex text-gray-300">
+                                                    <button type="button" data-rating="1" class="rating-star w-8 h-8">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button type="button" data-rating="2" class="rating-star w-8 h-8">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button type="button" data-rating="3" class="rating-star w-8 h-8">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button type="button" data-rating="4" class="rating-star w-8 h-8">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button type="button" data-rating="5" class="rating-star w-8 h-8">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <input type="hidden" id="rating" name="rating" value="0">
+                                                <span id="rating-text" class="ml-2 text-sm text-gray-500">Select a rating</span>
+                                            </div>
+                                        </div>
+                                        <div class="mb-4">
+                                            <label for="review-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                            <input type="text" id="review-title" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Summarize your experience">
+                                        </div>
+                                        <div class="mb-4">
+                                            <label for="review-content" class="block text-sm font-medium text-gray-700 mb-1">Review</label>
+                                            <textarea id="review-content" name="content" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Share your experience with this product"></textarea>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button id="submit-review-btn" type="button" class="inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm">Submit Review</button>
+                        <button id="cancel-review-btn" type="button" class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Added Notification -->
+    <div id="cart-notification" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg hidden z-50">
+        <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <span>Added to cart!</span>
+        </div>
+    </div>
+
+    <script src="/js/product-details.js"></script>
+
+    <!-- Add fallback for getTranslation function if not loaded -->
+    <script>
+        // Fallback for getTranslation function if i18n.js failed to load
+        if (typeof getTranslation !== 'function') {
+            console.warn('getTranslation function not found, creating fallback');
+            window.getTranslation = function(key, defaultValue = '') {
+                console.warn(`Using fallback translation for key: ${key}`);
+                return defaultValue;
+            };
+        }
+    </script>
+</body>
+</html>

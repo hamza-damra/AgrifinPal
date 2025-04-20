@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - AgriFinPal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/register.css" />
+</head>
+<body class="bg-gray-50">
+    <div class="container register-container">
+        <div class="login-box register-box">
+            <h1 class="title">Create Your Account</h1>
+            <p class="subtitle">Join AgriFinPal to connect with buyers and sell your agricultural products</p>
+
+            <div id="error-message" class="error hidden">
+                <!-- Error message will appear here -->
+            </div>
+
+            <form id="registration-form">
+                <!-- Form will be submitted via JavaScript -->
+                <input type="hidden" id="csrf-token" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="username">Username *</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            placeholder="Enter your username"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="Enter your email"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password *</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password *</label>
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            placeholder="Confirm your password"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input
+                            type="text"
+                            id="fullName"
+                            name="fullName"
+                            placeholder="Enter your full name"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number *</label>
+                        <input
+                            type="tel"
+                            id="phone"
+                            name="phone"
+                            placeholder="Enter your phone number"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="region">Region *</label>
+                        <select
+                            id="region"
+                            name="region"
+                            required
+                        >
+                            <option value="">Select your region</option>
+                            <option value="north">North</option>
+                            <option value="central">Central</option>
+                            <option value="south">South</option>
+                            <option value="gaza">Gaza</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="agricultureType">Agriculture Type *</label>
+                        <select
+                            id="agricultureType"
+                            name="agricultureType"
+                            required
+                        >
+                            <option value="">Select agriculture type</option>
+                            <option value="olives">Olives</option>
+                            <option value="vegetables">Vegetables</option>
+                            <option value="fruits">Fruits</option>
+                            <option value="grains">Grains</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="bio">Bio (Optional)</label>
+                    <textarea
+                        id="bio"
+                        name="bio"
+                        placeholder="Tell us about yourself and your farm"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="register-as-seller" name="registerAsSeller">
+                        Register as a Seller (Create a store and sell products)
+                    </label>
+                </div>
+
+                <p class="required-note">* Required fields</p>
+
+                <button type="submit" class="submit-btn" id="submit-btn">Create Account</button>
+            </form>
+
+            <p class="login-link">
+                Already have an account?
+                <a href="/login">Login here</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/register.js"></script>
+</body>
+</html>

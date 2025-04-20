@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriFinPal - Agricultural Finance Platform</title>
+    <meta name="description" content="AgriFinPal connects Palestinian farmers with financial services and markets">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/home.css">
+
+    <!-- i18n scripts (English only) -->
+    <script src="/js/i18n/en.js"></script>
+    <script src="/js/i18n/i18n.js"></script>
+</head>
+<body>
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrf-token" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}" />
+
+    <!-- English language is set by default -->
+    <script>
+        // Set English as the only language
+        document.addEventListener('DOMContentLoaded', function() {
+            // Always use English
+            localStorage.setItem('agrifinpal-language', 'en');
+            document.documentElement.dir = 'ltr';
+            document.documentElement.lang = 'en';
+
+            // Remove RTL stylesheet if it exists
+            const rtlStylesheet = document.getElementById('rtl-stylesheet');
+            if (rtlStylesheet) {
+                rtlStylesheet.remove();
+            }
+        });
+    </script>
+
+    <!-- Header -->
+    <header>
+        <div class="container header-container">
+            <div class="logo">AgriFinPal</div>
+
+            <nav class="nav-desktop">
+                <a href="#home" data-i18n="header.home">Home</a>
+                <a href="#about" data-i18n="header.about">About</a>
+                <a href="#features" data-i18n="header.features">Features</a>
+                <a href="#testimonials" data-i18n="header.testimonials">Testimonials</a>
+                <a href="#contact" data-i18n="header.contact">Contact</a>
+                <a href="/marketplace" data-i18n="header.marketplace">Marketplace</a>
+            </nav>
+
+            <div class="auth-section">
+                <!-- Login button for anonymous users -->
+                <a href="/login" class="login-btn" data-auth-anonymous data-i18n="header.login">Login</a>
+
+                <!-- Dashboard button for admin users -->
+                <a href="/dashboard" class="dashboard-btn" data-auth-required data-role="ROLE_ADMIN" data-i18n="header.dashboard">Dashboard</a>
+
+                <!-- Marketplace button for buyer users -->
+                <a href="/marketplace" class="dashboard-btn" data-auth-required data-role="ROLE_USER" data-i18n="header.marketplace">Marketplace</a>
+
+                <!-- Logout button for authenticated users -->
+                <a href="#" onclick="logout(); return false;" class="logout-btn" data-auth-required data-i18n="header.logout">Logout</a>
+
+                <!-- Language selector removed - English only -->
+            </div>
+
+            <button class="mobile-menu-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="mobile-menu" id="mobileMenu">
+            <div class="container">
+                <a href="#home" data-i18n="header.home">Home</a>
+                <a href="#about" data-i18n="header.about">About</a>
+                <a href="#features" data-i18n="header.features">Features</a>
+                <a href="#testimonials" data-i18n="header.testimonials">Testimonials</a>
+                <a href="#contact" data-i18n="header.contact">Contact</a>
+                <a href="/marketplace" data-i18n="header.marketplace">Marketplace</a>
+
+                <!-- Login button for anonymous users -->
+                <a href="/login" class="login-btn" data-auth-anonymous data-i18n="header.login">Login</a>
+
+                <!-- Dashboard button for admin users -->
+                <a href="/dashboard" class="dashboard-btn" data-auth-required data-role="ROLE_ADMIN" data-i18n="header.dashboard">Dashboard</a>
+
+                <!-- Marketplace button for buyer users -->
+                <a href="/marketplace" class="dashboard-btn" data-auth-required data-role="ROLE_USER" data-i18n="header.marketplace">Marketplace</a>
+
+                <!-- Logout button for authenticated users -->
+                <a href="#" onclick="logout(); return false;" class="logout-btn" data-auth-required data-i18n="header.logout">Logout</a>
+
+                <!-- Language selector removed - English only -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-bg"></div>
+        <div class="container hero-content">
+            <h1 class="hero-title" data-i18n="hero.title">Say goodbye to middlemen – Sell, finance, and grow smarter with AgriFinPal</h1>
+            <p class="hero-description" data-i18n="hero.description">AgriFinPal is a digital platform connecting Palestinian farmers directly with buyers and financial tools, eliminating middlemen and increasing profits.</p>
+            <div class="hero-buttons">
+                <a href="/register" class="btn-primary" data-i18n="hero.getStarted">Get Started</a>
+                <a href="#about" class="btn-secondary" data-i18n="hero.learnMore">Learn More</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section about" id="about">
+        <div class="container">
+            <h2 class="section-title">About AgriFinPal</h2>
+            <div class="divider"></div>
+
+            <div class="about-content">
+                <div class="about-text">
+                    <h3>Our Vision for Palestinian Agriculture</h3>
+                    <p>AgriFinPal is a pioneering platform dedicated to transforming the agricultural finance landscape in Palestine. We bridge the gap between smallholder farmers and financial institutions, creating opportunities for growth and sustainability.</p>
+
+                    <div class="mission-card">
+                        <h4>Our Mission</h4>
+                        <p>To empower Palestinian farmers by providing access to financial services, market linkages, and agricultural knowledge that enables them to increase productivity, improve livelihoods, and contribute to food security.</p>
+                    </div>
+                </div>
+
+                <div class="values-grid">
+                    <div class="value-card">
+                        <div class="value-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h4>Innovation</h4>
+                        <p>Leveraging technology to create solutions tailored for Palestinian farmers</p>
+                    </div>
+
+                    <div class="value-card">
+                        <div class="value-icon">
+                            <i class="fas fa-hand-holding-heart"></i>
+                        </div>
+                        <h4>Empowerment</h4>
+                        <p>Equipping farmers with tools and knowledge for financial independence</p>
+                    </div>
+
+                    <div class="value-card">
+                        <div class="value-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h4>Community</h4>
+                        <p>Building networks that support and strengthen the agricultural sector</p>
+                    </div>
+
+                    <div class="value-card">
+                        <div class="value-icon">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <h4>Sustainability</h4>
+                        <p>Promoting practices that ensure long-term environmental and economic viability</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section" id="features">
+        <div class="container">
+            <h2 class="section-title">Our Services</h2>
+            <p class="section-subtitle">Comprehensive solutions designed to meet the unique needs of Palestinian farmers</p>
+            <div class="divider"></div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3>Digital Marketplace</h3>
+                    <p>Connect directly with buyers and sellers to get fair prices for your products without intermediaries.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <h3>Financial Services</h3>
+                    <p>Access microloans, insurance products, and savings accounts tailored for agricultural needs.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Market Insights</h3>
+                    <p>Get real-time pricing data and market trends to make informed decisions about your crops.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <h3>Logistics Support</h3>
+                    <p>Efficient transportation and storage solutions to reduce post-harvest losses.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <h3>Technical Assistance</h3>
+                    <p>Expert advice on sustainable farming practices, pest control, and water management.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Community Network</h3>
+                    <p>Connect with other farmers to share knowledge, resources, and best practices.</p>
+                </div>
+            </div>
+
+            <div class="section-cta">
+                <a href="/register" class="btn-primary">Start Using AgriFinPal</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="section testimonials" id="testimonials">
+        <div class="container">
+            <h2 class="section-title">Success Stories</h2>
+            <div class="divider"></div>
+
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="quote-icon">
+                        <i class="fas fa-quote-left"></i>
+                    </div>
+                    <p class="testimonial-text">"AgriFinPal changed my life. With their microloan, I was able to buy quality seeds and irrigation equipment. My olive yield increased by 40% in just one season."</p>
+                    <div class="testimonial-author">
+                        <img src="https://picsum.photos/100?random=2" alt="Ahmed's portrait" class="author-avatar">
+                        <div>
+                            <div class="author-name">Ahmed Hassan</div>
+                            <div class="author-role">Olive Farmer, Jenin</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="quote-icon">
+                        <i class="fas fa-quote-left"></i>
+                    </div>
+                    <p class="testimonial-text">"The marketplace feature helped me find reliable buyers for my vegetables at fair prices. No more worrying about middlemen taking most of the profits."</p>
+                    <div class="testimonial-author">
+                        <img src="https://picsum.photos/100?random=3" alt="Mariam's portrait" class="author-avatar">
+                        <div>
+                            <div class="author-name">Mariam Khalil</div>
+                            <div class="author-role">Vegetable Farmer, Tulkarem</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="quote-icon">
+                        <i class="fas fa-quote-left"></i>
+                    </div>
+                    <p class="testimonial-text">"As a woman farmer, I faced many challenges accessing credit. AgriFinPal gave me the opportunity to expand my greenhouse business and support my family."</p>
+                    <div class="testimonial-author">
+                        <img src="https://picsum.photos/100?random=4" alt="Fatima's portrait" class="author-avatar">
+                        <div>
+                            <div class="author-name">Fatima Abbas</div>
+                            <div class="author-role">Greenhouse Owner, Hebron</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Join Us Section -->
+    <section class="section" id="join-us">
+        <div class="container">
+            <h2 class="section-title">Join Our Network</h2>
+            <p class="section-subtitle">Become part of a growing community of empowered farmers</p>
+            <div class="divider"></div>
+
+            <div class="join-form-container">
+                <form id="joinForm">
+                    <div class="form-group">
+                        <label for="fullName" class="form-label">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="region" class="form-label">Region</label>
+                        <select id="region" name="region" class="form-select" required>
+                            <option value="">Select your region</option>
+                            <option value="north">North (Jenin, Nablus, Tulkarem, Qalqilya, Salfit)</option>
+                            <option value="central">Central (Ramallah, Jericho, Jerusalem, Bethlehem)</option>
+                            <option value="south">South (Hebron)</option>
+                            <option value="gaza">Gaza</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="agricultureType" class="form-label">Type of Agriculture</label>
+                        <select id="agricultureType" name="agricultureType" class="form-select" required>
+                            <option value="">Select your agriculture type</option>
+                            <option value="olives">Olives</option>
+                            <option value="vegetables">Vegetables</option>
+                            <option value="fruits">Fruits</option>
+                            <option value="grains">Grains</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contact" class="form-label">Contact Information</label>
+                        <input type="text" id="contact" name="contact" class="form-input" placeholder="Enter your phone number or email" required>
+                    </div>
+
+                    <button type="submit" class="form-submit">Join Now</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="section" id="contact">
+        <div class="container">
+            <h2 class="section-title">Get In Touch</h2>
+            <p class="section-subtitle">We're here to help and answer any questions you might have</p>
+            <div class="divider"></div>
+
+            <div class="contact-grid">
+                <div>
+                    <div class="contact-info">
+                        <h3>Contact Information</h3>
+
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h4>Email</h4>
+                                <p>info@agrifinpal.ps</p>
+                            </div>
+                        </div>
+
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h4>WhatsApp</h4>
+                                <p>+970 59 123 4567</p>
+                            </div>
+                        </div>
+
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-share-alt"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h4>Social Media</h4>
+                                <div class="social-links">
+                                    <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                                    <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="contact-info">
+                        <h3>Send Us a Message</h3>
+                        <form id="contactForm">
+                            <div class="form-group">
+                                <label for="name" class="form-label">Your Name</label>
+                                <input type="text" id="name" name="name" class="form-input" placeholder="Enter your name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email" class="form-label">Your Email</label>
+                                <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="message" class="form-label">Your Message</label>
+                                <textarea id="message" name="message" class="form-textarea" placeholder="How can we help you?" required></textarea>
+                            </div>
+
+                            <button type="submit" class="form-submit">Send Message</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-logo">AgriFinPal</div>
+                    <p class="footer-description">Empowering Palestinian farmers through financial inclusion and market access.</p>
+                </div>
+
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#features">Features</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#join-us">Join Us</a></li>
+                        <li><a href="#testimonials">Testimonials</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4>Platform</h4>
+                    <ul>
+                        <li><a href="/marketplace">Marketplace</a></li>
+                        <li><a href="/login">Login</a></li>
+                        <li><a href="/register">Register</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-copyright">
+                <p>&copy; 2023 AgriFinPal. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/auth-utils.js"></script>
+    <script src="/js/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - AgriFinPal</title>
+    <meta name="description" content="Your payment was successful">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/colors.css">
+    <script src="/js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Global cleanup script - runs immediately -->
+    <script>
+        // Immediately remove any processing overlays
+        (function() {
+            // Clear localStorage flags
+            localStorage.removeItem('payment_processing');
+
+            // Force hide any fixed elements that might be overlays
+            document.write('<style>\n' +
+                '.fixed, [style*="position: fixed"], #processing-overlay, .processing-overlay { display: none !important; }\n' +
+                'body { overflow: auto !important; }\n' +
+            '</style>');
+
+            // Set a flag to indicate we're on the success page
+            localStorage.setItem('payment_completed', 'true');
+        })();
+    </script>
+
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .success-icon {
+            animation: scaleIn 0.5s ease-out forwards;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div id="payment-success-content" class="max-w-3xl w-full mx-auto px-4 py-12">
+        <!-- Success Card -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden animate-fade-in">
+            <!-- Success Header -->
+            <div class="bg-green-600 p-6 text-white text-center">
+                <div class="success-icon bg-white rounded-full h-24 w-24 flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold">Payment Successful!</h1>
+                <p class="mt-2 text-green-100">Your order has been placed successfully</p>
+            </div>
+
+            <!-- Order Details -->
+            <div class="p-6">
+                <div class="mb-6 border-b border-gray-200 pb-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Order Details</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Order ID</p>
+                            <p id="order-id" class="text-lg font-medium text-gray-900" th:text="${orderId}">ORD-12345</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Date</p>
+                            <p class="text-lg font-medium text-gray-900" th:text="${#dates.format(orderDate, 'MMM dd, yyyy')}">May 15, 2023</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Total Amount</p>
+                            <p class="text-lg font-medium text-gray-900" th:text="${#numbers.formatCurrency(totalAmount)}">$99.99</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Status</p>
+                            <p class="text-lg font-medium text-green-600">Paid</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-gray-600 mb-6">Thank you for your purchase! You will receive an email confirmation shortly.</p>
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <a href="/dashboard" id="view-orders" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-md font-bold transition-colors flex items-center justify-center">
+                            <span>View Your Orders</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </a>
+                        <a href="/marketplace?refresh=true" id="continue-shopping" class="border border-gray-300 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900 py-3 px-6 rounded-md font-bold transition-colors flex items-center justify-center">
+                            <span>Continue Shopping</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto Redirect Notice -->
+        <div class="text-center mt-6 text-gray-600">
+            <p>You will be redirected to your orders in <span id="countdown">10</span> seconds...</p>
+        </div>
+    </div>
+
+    <!-- Include marketplace.js for updateCartCount function -->
+    <script src="/js/marketplace.js"></script>
+
+    <!-- Emergency cart clearer script - loaded first to ensure it runs -->
+    <script src="/js/emergency-cart-clearer.js"></script>
+
+    <!-- Include our payment success scripts -->
+    <script src="/js/payment-success.js"></script>
+
+    <!-- Direct cart count update script -->
+    <script>
+        // Update cart count immediately and after a delay
+        if (typeof updateCartCount === 'function') {
+            console.log('Directly calling updateCartCount with forceRefresh=true');
+            updateCartCount(true);
+
+            // Also update after a delay to ensure API has time to process
+            setTimeout(() => {
+                console.log('Calling updateCartCount again after delay');
+                updateCartCount(true);
+            }, 2000);
+        }
+
+        // Add event listener for "Continue Shopping" button to force refresh
+        document.addEventListener('DOMContentLoaded', function() {
+            const continueShoppingBtn = document.getElementById('continue-shopping');
+            if (continueShoppingBtn) {
+                // Make sure the href includes the refresh parameter
+                if (!continueShoppingBtn.href.includes('refresh=true')) {
+                    continueShoppingBtn.href = '/marketplace?refresh=true';
+                }
+
+                // Also set the sessionStorage flag as a backup
+                continueShoppingBtn.addEventListener('click', function() {
+                    sessionStorage.setItem('force_refresh', 'true');
+                });
+            }
+        });
+    </script>
+
+    <script>
+        // Clean up any lingering overlays and flags
+        function cleanupPaymentState() {
+            // Clear payment flags in localStorage
+            localStorage.removeItem('payment_processing');
+            localStorage.setItem('payment_completed', 'true');
+            localStorage.setItem('cart_cleared', 'true');
+
+            // Clear any cached cart data
+            try {
+                localStorage.removeItem('cart');
+                localStorage.removeItem('cart_items');
+                localStorage.removeItem('cart_count');
+                sessionStorage.removeItem('cart_items');
+                sessionStorage.removeItem('cart_count');
+            } catch (e) {
+                console.error('Error clearing cart data from storage:', e);
+            }
+
+            // Remove any processing overlays that might still be present
+            const processingOverlay = document.getElementById('processing-overlay');
+            if (processingOverlay) {
+                processingOverlay.remove();
+            }
+
+            // Also check for any elements with the processing-overlay class
+            document.querySelectorAll('.processing-overlay, [id^="processing-overlay"]').forEach(el => {
+                if (el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+            });
+
+            // Remove any success overlays that might still be present
+            const successOverlay = document.getElementById('success-overlay');
+            if (successOverlay) {
+                successOverlay.remove();
+            }
+
+            // Add a style to ensure no fixed overlays are visible
+            const style = document.createElement('style');
+            style.textContent = `
+                .fixed, [style*="position: fixed"] {
+                    display: none !important;
+                }
+                #payment-success-content {
+                    display: block !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Run cleanup immediately
+        cleanupPaymentState();
+
+        // Also run cleanup on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', cleanupPaymentState);
+
+        // Countdown timer for redirect
+        let seconds = 10;
+        const countdownElement = document.getElementById('countdown');
+
+        const interval = setInterval(() => {
+            seconds--;
+            countdownElement.textContent = seconds;
+
+            if (seconds <= 0) {
+                clearInterval(interval);
+                window.location.href = '/dashboard';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

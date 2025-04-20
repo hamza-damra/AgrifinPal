@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="100" fill="#E2E8F0"/>
+  
+  <!-- User Icon -->
+  <path d="M100 105C118.225 105 133 90.225 133 72C133 53.775 118.225 39 100 39C81.775 39 67 53.775 67 72C67 90.225 81.775 105 100 105Z" fill="#A0AEC0"/>
+  <path d="M100 117C66.863 117 40 143.863 40 177C40 177 58.5 183 100 183C141.5 183 160 177 160 177C160 143.863 133.137 117 100 117Z" fill="#A0AEC0"/>
+</svg>

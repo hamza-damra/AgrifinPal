@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart Clearer</title>
+    <script>
+        // Execute immediately when loaded
+        (function() {
+            console.log('Cart Clearer iframe loaded');
+            
+            // Make multiple attempts to clear the cart
+            clearCartWithRetry();
+            setTimeout(clearCartWithRetry, 2000);  // Try again after 2 seconds
+            setTimeout(clearCartWithRetry, 5000);  // Try again after 5 seconds
+            
+            /**
+             * Clear the cart with retry logic
+             */
+            function clearCartWithRetry() {
+                console.log('Attempting to clear cart from iframe');
+                
+                // Get token from parent window's localStorage
+                const token = window.parent.localStorage.getItem('token');
+                if (!token) {
+                    console.warn('No authentication token found in parent window');
+                    return;
+                }
+                
+                // Make a direct call to the cart clear endpoint
+                fetch('/api/cart/clear', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error(`Failed to clear cart: ${response.status} ${response.statusText}`);
+                    }
+                })
+                .then(result => {
+                    console.log('Cart cleared successfully from iframe:', result);
+                })
+                .catch(error => {
+                    console.error('Error clearing cart from iframe:', error);
+                });
+            }
+        })();
+    </script>
+</head>
+<body>
+    <!-- This page is intentionally left blank -->
+</body>
+</html>

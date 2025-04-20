@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - AgriFinPal</title>
+    <meta name="description" content="Browse agricultural products from local farmers">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/products.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrf-token" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+    <!-- Loading State -->
+    <div id="loading-state" class="loading-state">
+        <div class="container">
+            <div class="spinner"></div>
+            <p class="loading-text">Loading products...</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="products-content" class="hidden">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">Agricultural Products</h1>
+                <p class="page-description">Browse fresh products from local farmers</p>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="filters-section">
+                <div class="search-container">
+                    <label for="search-input"></label><input type="text" id="search-input" placeholder="Search products..." class="search-input">
+                    <button id="search-btn" class="search-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="category-filter" class="filter-label">Category</label>
+                        <select id="category-filter" class="filter-select">
+                            <option value="">All Categories</option>
+                            <!-- Categories will be loaded here -->
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="sort-filter" class="filter-label">Sort By</label>
+                        <select id="sort-filter" class="filter-select">
+                            <option value="name_asc">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                            <option value="price_asc">Price (Low to High)</option>
+                            <option value="price_desc">Price (High to Low)</option>
+                            <option value="rating_desc">Highest Rated</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-checkbox">
+                        <input type="checkbox" id="organic-filter" class="filter-checkbox-input">
+                        <label for="organic-filter" class="filter-checkbox-label">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M2 22s4-2 8-2 8 2 8 2"></path><path d="M2 22V9a4 4 0 0 1 4-4h.5"></path><path d="M22 22V9a4 4 0 0 0-4-4h-.5"></path><path d="M8 5V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path><path d="M12 19v-4"></path><path d="M8 15h8"></path></svg>
+                            Organic Only
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div id="products-grid" class="products-grid">
+                <!-- Products will be loaded here -->
+                <div class="loading-placeholder">
+                    <div class="spinner small"></div>
+                    <p>Loading products...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="pagination" class="pagination hidden">
+                <button id="prev-page" class="pagination-btn" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    Previous
+                </button>
+                <div id="page-info" class="page-info">Page 1 of 1</div>
+                <button id="next-page" class="pagination-btn" disabled>
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="hidden error-state">
+        <div class="container">
+            <div class="error-card">
+                <h2 class="error-title">Error</h2>
+                <p id="error-message">Failed to load products.</p>
+                <button id="retry-btn" class="primary-btn">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Results State -->
+    <div id="no-results" class="hidden no-results">
+        <div class="container">
+            <div class="no-results-card">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                <h2 class="no-results-title">No Products Found</h2>
+                <p class="no-results-message">Try adjusting your search or filters to find what you're looking for.</p>
+                <button id="clear-filters-btn" class="secondary-btn">Clear Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/products.js"></script>
+</body>
+</html>

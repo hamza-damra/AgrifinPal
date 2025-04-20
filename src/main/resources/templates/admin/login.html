@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Admin Login - AgriFinPal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/login.css" />
+    <style>
+        /* Admin-specific styles using project's green theme */
+        .login-box {
+            border-top: 4px solid #166534; /* green-800 - project primary color */
+        }
+        .submit-btn {
+            background-color: #22c55e; /* green-500 - project primary-light color */
+        }
+        .submit-btn:hover {
+            background-color: #166534; /* green-800 - project primary color */
+        }
+        .title {
+            color: #166534; /* green-800 - project primary color */
+        }
+        .admin-badge {
+            display: inline-block;
+            background-color: #166534; /* green-800 - project primary color */
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+<div class="container">
+    <div class="login-box">
+        <h1 class="title">Admin Login <span class="admin-badge">ADMIN</span></h1>
+
+        <div id="error-box" class="error hidden">Invalid credentials</div>
+        <div id="inactive-box" class="error hidden">Your account is inactive. Please contact support.</div>
+        <div id="suspended-box" class="error hidden">Your account is suspended. Please contact support.</div>
+        <div id="banned-box" class="error hidden">Your account is banned. Please contact support.</div>
+        <div id="success-box" class="success hidden">Login successful!</div>
+
+        <form id="login-form">
+            <!-- CSRF Token -->
+            <input type="hidden" id="csrf-token" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+            <div class="form-group">
+                <label for="username">Admin Username *</label>
+                <input type="text" name="username" id="username" required />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Admin Password *</label>
+                <input type="password" name="password" id="password" required />
+            </div>
+
+            <button type="submit" class="submit-btn">Login as Admin</button>
+        </form>
+
+        <p class="register-link">
+            Not an administrator?
+            <a href="/login">Regular login</a>
+        </p>
+    </div>
+</div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/auth-utils.js"></script>
+    <script src="/js/admin-login.js"></script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - AgriFinPal</title>
+
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/cart.css">
+
+    <!-- Scripts -->
+    <script src="/js/i18n/en.js"></script>
+    <script src="/js/i18n/i18n.js"></script>
+    <script src="/js/cart-api.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/logout.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-green-600 text-white shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <!-- Logo and Navigation -->
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-leaf mr-2"></i>
+                        <span>AgriFinPal</span>
+                    </a>
+                    <nav class="hidden md:flex items-center space-x-6">
+                        <a href="/" class="hover:text-green-200 transition-colors">Home</a>
+                        <a href="/marketplace" class="hover:text-green-200 transition-colors">Marketplace</a>
+                        <a href="/orders" class="hover:text-green-200 transition-colors">My Orders</a>
+                    </nav>
+                </div>
+
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <!-- Cart Button with Counter -->
+                    <a href="/cart" class="relative p-2 hover:text-green-200 transition-colors font-semibold border-b-2 border-white pb-1">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                    </a>
+
+                    <!-- Orders Button -->
+                    <a href="/orders" class="relative p-2 hover:text-green-200 transition-colors" title="My Orders">
+                        <i class="fas fa-box text-xl"></i>
+                    </a>
+
+                    <!-- User Menu -->
+                    <div class="relative" id="user-menu-container">
+                        <button id="user-menu-button" class="flex items-center hover:text-green-200 transition-colors focus:outline-none">
+                            <i class="fas fa-user-circle text-xl mr-1"></i>
+                            <span id="username-display">Account</span>
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                            <!-- Logged in menu items -->
+                            <div id="logged-in-menu" class="hidden">
+                                <a href="/profile" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-user mr-2"></i> Profile
+                                </a>
+                                <a href="/orders" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-shopping-bag mr-2"></i> Orders
+                                </a>
+                                <a href="/settings" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-cog mr-2"></i> Settings
+                                </a>
+                                <hr class="my-1">
+                                <a href="#" onclick="logout(); return false;" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                                </a>
+                            </div>
+
+                            <!-- Logged out menu items -->
+                            <div id="logged-out-menu">
+                                <a href="/login" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sign-in-alt mr-2"></i> Login
+                                </a>
+                                <a href="/register" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-user-plus mr-2"></i> Register
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h1 class="text-2xl font-bold mb-6 text-gray-800">Your Shopping Cart</h1>
+
+            <!-- Loading State -->
+            <div id="cart-loading" class="py-12 text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+                <p class="mt-4 text-gray-600">Loading your cart...</p>
+            </div>
+
+            <!-- Empty Cart State -->
+            <div id="cart-empty" class="py-12 text-center hidden">
+                <i class="fas fa-shopping-cart text-6xl text-gray-300 mb-4"></i>
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Your cart is empty</h2>
+                <p class="text-gray-500 mb-6">Looks like you haven't added any products to your cart yet.</p>
+                <a href="/marketplace" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md transition-colors">
+                    <i class="fas fa-store mr-2"></i>
+                    Continue Shopping
+                </a>
+            </div>
+
+            <!-- Cart Items -->
+            <div id="cart-items" class="hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="py-3 px-6 text-left">Product</th>
+                                <th class="py-3 px-6 text-center">Price</th>
+                                <th class="py-3 px-6 text-center">Quantity</th>
+                                <th class="py-3 px-6 text-center">Subtotal</th>
+                                <th class="py-3 px-6 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-table-body">
+                            <!-- Cart items will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Cart Actions -->
+                <div class="mt-8 flex flex-col md:flex-row justify-between items-start">
+                    <div class="mb-4 md:mb-0">
+                        <button id="update-cart-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors flex items-center">
+                            <i class="fas fa-sync-alt mr-2"></i>
+                            <span>Update Cart</span>
+                        </button>
+                        <button id="clear-cart-btn" class="ml-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-md transition-colors flex items-center">
+                            <i class="fas fa-trash-alt mr-2"></i>
+                            <span>Clear Cart</span>
+                        </button>
+                    </div>
+
+                    <!-- Cart Summary -->
+                    <div class="bg-gray-50 p-4 rounded-md w-full md:w-80">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-800">Cart Summary</h3>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-600">Subtotal:</span>
+                            <span id="cart-subtotal" class="font-medium">$0.00</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-600">Shipping:</span>
+                            <span class="font-medium">Free</span>
+                        </div>
+                        <div class="border-t border-gray-200 my-2 pt-2"></div>
+                        <div class="flex justify-between mb-4">
+                            <span class="text-gray-800 font-semibold">Total:</span>
+                            <span id="cart-total" class="text-green-600 font-bold">$0.00</span>
+                        </div>
+                        <a href="/checkout-page" class="block w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md text-center transition-colors">
+                            <i class="fas fa-credit-card mr-2"></i>
+                            Proceed to Checkout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">About AgriFinPal</h3>
+                    <p class="text-gray-400">Connecting farmers and buyers in Palestine, promoting sustainable agriculture and fair trade.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="/" class="text-gray-400 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="/marketplace" class="text-gray-400 hover:text-white transition-colors">Marketplace</a></li>
+                        <li><a href="/about" class="text-gray-400 hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="/contact" class="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><i class="fas fa-map-marker-alt mr-2"></i> Palestine</li>
+                        <li><i class="fas fa-phone mr-2"></i> +970 123 456 789</li>
+                        <li><i class="fas fa-envelope mr-2"></i> info@agrifinpal.ps</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Follow Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+                <p>&copy; 2025 AgriFinPal. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Notification -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg hidden">
+        <span id="notification-message">Item added to cart</span>
+    </div>
+
+    <!-- Remove Confirmation Modal -->
+    <div id="remove-confirmation-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-75"></div>
+        <div class="bg-white rounded-lg p-6 max-w-sm mx-4 z-10">
+            <h3 class="text-lg font-semibold mb-4">Remove Item</h3>
+            <p id="remove-modal-message" class="mb-6 text-gray-600">Are you sure you want to remove this item from your cart?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-remove" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors">Cancel</button>
+                <button id="confirm-remove" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Cart Confirmation Modal -->
+    <div id="clear-confirmation-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-75"></div>
+        <div class="bg-white rounded-lg p-6 max-w-sm mx-4 z-10">
+            <h3 class="text-lg font-semibold mb-4">Clear Cart</h3>
+            <p class="mb-6 text-gray-600">Are you sure you want to remove all items from your cart?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-clear" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors">Cancel</button>
+                <button id="confirm-clear" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">Clear Cart</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Authentication Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const token = localStorage.getItem('token');
+            const userMenu = document.getElementById('user-menu-button');
+            const userDropdown = document.getElementById('user-dropdown');
+            const loggedInMenu = document.getElementById('logged-in-menu');
+            const loggedOutMenu = document.getElementById('logged-out-menu');
+            const usernameDisplay = document.getElementById('username-display');
+
+            // Toggle dropdown when clicking the user menu button
+            userMenu.addEventListener('click', function() {
+                userDropdown.classList.toggle('hidden');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!userMenu.contains(event.target) && !userDropdown.contains(event.target)) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
+
+            // Update UI based on authentication status
+            if (token) {
+                // User is logged in
+                loggedInMenu.classList.remove('hidden');
+                loggedOutMenu.classList.add('hidden');
+
+                // Get username from localStorage if available
+                const username = localStorage.getItem('username');
+                if (username) {
+                    usernameDisplay.textContent = username;
+                }
+            } else {
+                // User is not logged in
+                loggedInMenu.classList.add('hidden');
+                loggedOutMenu.classList.remove('hidden');
+                usernameDisplay.textContent = 'Account';
+            }
+        });
+    </script>
+    <script src="/js/global-cart-clearer.js"></script>
+</body>
+</html>

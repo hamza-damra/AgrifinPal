@@ -1,0 +1,154 @@
+/* Product Details CSS */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Loading animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Rating stars */
+.half-star {
+    position: relative;
+}
+
+.half-star::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background-color: currentColor;
+    z-index: 1;
+}
+
+/* Tab styling */
+.tab-button.active {
+    color: #16a34a;
+    border-color: #16a34a;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Review stars input */
+.rating-star {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.rating-star.active {
+    color: #facc15;
+}
+
+/* Cart notification animation */
+@keyframes slideUp {
+    0% { transform: translateY(100%); opacity: 0; }
+    10% { transform: translateY(0); opacity: 1; }
+    90% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(100%); opacity: 0; }
+}
+
+.notification-show {
+    animation: slideUp 3s forwards;
+}
+
+/* Cart notification styling */
+#cart-notification {
+    transition: opacity 0.3s, transform 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+#cart-notification.hidden {
+    display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .md\:flex {
+        flex-direction: column;
+    }
+
+    .md\:w-1\/2 {
+        width: 100%;
+    }
+}
+
+/* Product image hover zoom effect */
+.product-image-container {
+    overflow: hidden;
+}
+
+.product-image-container img {
+    transition: transform 0.3s ease;
+}
+
+.product-image-container:hover img {
+    transform: scale(1.05);
+}
+
+/* Review list styling */
+.review-item {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.review-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.review-author {
+    font-weight: 600;
+}
+
+.review-date {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.review-rating {
+    margin-bottom: 0.5rem;
+}
+
+.review-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.review-content {
+    color: #4b5563;
+}
+
+/* Related products */
+.related-product-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.related-product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}

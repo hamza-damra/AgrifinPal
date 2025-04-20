@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Store - AgriFinPal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/edit-store.css">
+</head>
+<body>
+    <div class="page-container">
+        <div class="container">
+            <div class="back-link-container">
+                <a href="/dashboard" class="back-link" id="back-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to Dashboard
+                </a>
+            </div>
+
+            <div class="edit-store-card">
+                <div class="card-header">
+                    <h1 class="card-title">Edit Store</h1>
+                </div>
+
+                <div id="notification-area">
+                    <div id="error-message" class="message error-message hidden">
+                        <div class="message-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            <p id="error-text">Please fill in all required fields</p>
+                        </div>
+                    </div>
+
+                    <div id="success-message" class="message success-message hidden">
+                        <div class="message-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <p>Store updated successfully! Redirecting to dashboard...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loading-state" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading store details...</p>
+                </div>
+
+                <form id="edit-store-form" class="hidden">
+                    <input type="hidden" id="store-id" name="storeId">
+                    
+                    <div class="store-images-section">
+                        <div class="store-banner-container">
+                            <div class="store-banner">
+                                <img id="banner-preview" src="/images/default-banner.svg" alt="Store Banner">
+                                <div class="banner-overlay">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="store-logo-container">
+                            <div class="store-logo">
+                                <img id="logo-preview" src="/images/default-logo.svg" alt="Store Logo">
+                                <div class="logo-overlay">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-name">Store Name *</label>
+                        <input type="text" id="store-name" name="name" required>
+                        <small class="form-hint">Enter a unique name for your store (2-100 characters)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-description">Description *</label>
+                        <textarea id="store-description" name="description" rows="4" required></textarea>
+                        <small class="form-hint">Describe what your store offers (max 1000 characters)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-location">Location *</label>
+                        <input type="text" id="store-location" name="location" required>
+                        <small class="form-hint">Where is your farm/store located?</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-contact">Contact Information *</label>
+                        <input type="text" id="store-contact" name="contactInfo" required>
+                        <small class="form-hint">Phone number, email, or other contact details</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-logo">Logo URL</label>
+                        <input type="text" id="store-logo" name="logo" placeholder="https://example.com/logo.jpg">
+                        <small class="form-hint">Enter a URL for your store logo (optional)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-banner">Banner URL</label>
+                        <input type="text" id="store-banner" name="banner" placeholder="https://example.com/banner.jpg">
+                        <small class="form-hint">Enter a URL for your store banner (optional)</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="cancel-button" class="secondary-btn">Cancel</button>
+                        <button type="submit" id="submit-button" class="primary-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/auth-utils.js"></script>
+    <script src="/js/edit-store.js"></script>
+</body>
+</html>

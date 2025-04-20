@@ -1,0 +1,171 @@
+/* Additional styles for marketplace page */
+/* These are supplementary to the inline Tailwind CSS */
+
+/* Ensure proper focus styles for accessibility */
+:focus {
+    outline: 2px solid rgba(22, 163, 74, 0.5);
+    outline-offset: 2px;
+}
+
+/* Custom scrollbar for better UX */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Fallback styles for browsers that don't support line-clamp */
+.line-clamp-2 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-height: 3em; /* Fallback for non-webkit browsers */
+}
+
+/* Custom checkbox styles */
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.25rem;
+    background-color: white;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Cart Button Styles */
+.add-to-cart-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Add to Cart button (green) */
+.add-to-cart-btn.from-green-50 {
+    background: linear-gradient(to right, #e6f7e6, #d1f0d1);
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.add-to-cart-btn.from-green-50:hover {
+    background: linear-gradient(to right, #d1f0d1, #a5d6a7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.add-to-cart-btn.from-green-50:hover i,
+.add-to-cart-btn.from-green-50:hover svg {
+    animation: pulse 1s infinite;
+}
+
+/* In Cart button (blue) */
+.add-to-cart-btn.from-blue-50 {
+    background: linear-gradient(to right, #e3f2fd, #bbdefb);
+    color: #1565c0;
+    border: 1px solid #90caf9;
+}
+
+.add-to-cart-btn.from-blue-50:hover {
+    background: linear-gradient(to right, #bbdefb, #90caf9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Button animations */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* Ripple effect */
+.add-to-cart-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.4);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.add-to-cart-btn:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% { transform: scale(0, 0); opacity: 0.5; }
+    20% { transform: scale(25, 25); opacity: 0.3; }
+    100% { opacity: 0; transform: scale(40, 40); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .bg-gray-50 {
+        background-color: white !important;
+    }
+
+    .shadow-md, .shadow-lg {
+        box-shadow: none !important;
+    }
+
+    .py-16, .py-24 {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+
+    button, .button {
+        display: none !important;
+    }
+}

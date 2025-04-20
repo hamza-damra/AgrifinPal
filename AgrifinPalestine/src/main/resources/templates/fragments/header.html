@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <!-- Common Header Fragment -->
+    <header th:fragment="header" class="bg-green-600 text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="/" class="text-2xl font-bold">AgriFinPal</a>
+            </div>
+            <nav>
+                <ul class="flex space-x-6">
+                    <!-- Always visible links -->
+                    <li><a href="/" class="hover:text-green-200">Home</a></li>
+                    <li><a href="/products" class="hover:text-green-200">Products</a></li>
+                    <li><a href="/marketplace" class="hover:text-green-200">Marketplace</a></li>
+                    
+                    <!-- User-specific links (only visible to regular users) -->
+                    <li th:if="${#authorization.expression('hasRole(''USER'')')}" class="user-only">
+                        <a href="/cart" class="hover:text-green-200">Cart</a>
+                    </li>
+                    
+                    <!-- Seller-specific links (only visible to sellers) -->
+                    <li th:if="${#authorization.expression('hasRole(''SELLER'')')}" class="seller-only">
+                        <a href="/seller/dashboard" class="hover:text-green-200">Seller Dashboard</a>
+                    </li>
+                    
+                    <!-- Admin-specific links (only visible to admins) -->
+                    <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}" class="admin-only">
+                        <a href="/admin/dashboard" class="hover:text-green-200">Admin Dashboard</a>
+                    </li>
+                    
+                    <!-- Authentication links -->
+                    <li th:if="${#authorization.expression('isAuthenticated()')}">
+                        <a href="/api/auth/logout" class="hover:text-green-200">Logout</a>
+                    </li>
+                    <li th:unless="${#authorization.expression('isAuthenticated()')}">
+                        <a href="/login" class="hover:text-green-200">Login</a>
+                    </li>
+                    <li th:unless="${#authorization.expression('isAuthenticated()')}">
+                        <a href="/register" class="hover:text-green-200">Register</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Mobile Header Fragment -->
+    <header th:fragment="mobile-header" class="bg-green-600 text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="/" class="text-2xl font-bold">AgriFinPal</a>
+            </div>
+            <button id="mobile-menu-toggle" class="text-white focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Mobile Menu (hidden by default) -->
+        <div id="mobile-menu" class="hidden bg-green-700 py-2">
+            <div class="container mx-auto px-4">
+                <ul class="space-y-2">
+                    <!-- Always visible links -->
+                    <li><a href="/" class="block py-2 hover:text-green-200">Home</a></li>
+                    <li><a href="/products" class="block py-2 hover:text-green-200">Products</a></li>
+                    <li><a href="/marketplace" class="block py-2 hover:text-green-200">Marketplace</a></li>
+                    
+                    <!-- User-specific links (only visible to regular users) -->
+                    <li th:if="${#authorization.expression('hasRole(''USER'')')}" class="user-only">
+                        <a href="/cart" class="block py-2 hover:text-green-200">Cart</a>
+                    </li>
+                    
+                    <!-- Seller-specific links (only visible to sellers) -->
+                    <li th:if="${#authorization.expression('hasRole(''SELLER'')')}" class="seller-only">
+                        <a href="/seller/dashboard" class="block py-2 hover:text-green-200">Seller Dashboard</a>
+                    </li>
+                    
+                    <!-- Admin-specific links (only visible to admins) -->
+                    <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}" class="admin-only">
+                        <a href="/admin/dashboard" class="block py-2 hover:text-green-200">Admin Dashboard</a>
+                    </li>
+                    
+                    <!-- Authentication links -->
+                    <li th:if="${#authorization.expression('isAuthenticated()')}">
+                        <a href="/api/auth/logout" class="block py-2 hover:text-green-200">Logout</a>
+                    </li>
+                    <li th:unless="${#authorization.expression('isAuthenticated()')}">
+                        <a href="/login" class="block py-2 hover:text-green-200">Login</a>
+                    </li>
+                    <li th:unless="${#authorization.expression('isAuthenticated()')}">
+                        <a href="/register" class="block py-2 hover:text-green-200">Register</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+    
+    <script th:fragment="mobile-menu-script">
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuToggle && mobileMenu) {
+                mobileMenuToggle.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

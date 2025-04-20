@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Store - AgriFinPal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/create-store.css">
+</head>
+<body>
+    <div class="page-container">
+        <div class="container">
+            <div class="back-link-container">
+                <a href="/dashboard" class="back-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to Dashboard
+                </a>
+            </div>
+
+            <div class="create-store-card">
+                <div class="card-header">
+                    <div class="icon-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    </div>
+                    <h1 class="card-title">Create Your Store</h1>
+                </div>
+
+                <div id="error-message" class="message error-message hidden">
+                    <div class="message-content">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <p id="error-text">All fields marked with * are required</p>
+                    </div>
+                </div>
+
+                <div id="success-message" class="message success-message hidden">
+                    <div class="message-content">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        <p>Store created successfully! Redirecting to dashboard...</p>
+                    </div>
+                </div>
+
+                <form id="create-store-form">
+                    <div class="form-group">
+                        <label for="name">Store Name *</label>
+                        <input type="text" id="name" name="name" placeholder="My Awesome Store" required minlength="2" maxlength="100">
+                        <small class="form-hint">Enter a unique name for your store (2-100 characters)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description *</label>
+                        <textarea id="description" name="description" rows="4" placeholder="Tell customers about your store..." required maxlength="1000"></textarea>
+                        <small class="form-hint">Describe what your store offers (max 1000 characters)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Location *</label>
+                        <input type="text" id="location" name="location" placeholder="123 Main St, City, Country" required maxlength="200">
+                        <small class="form-hint">Where is your farm/store located?</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactInfo">Contact Info *</label>
+                        <input type="text" id="contactInfo" name="contactInfo" placeholder="Email or phone number" required maxlength="200">
+                        <small class="form-hint">Phone number, email, or other contact details</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="logo">Logo URL</label>
+                        <input type="text" id="logo" name="logo" placeholder="https://example.com/logo.jpg" maxlength="500">
+                        <small class="form-hint">Optional. We'll use a default logo if not provided.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="banner">Banner URL</label>
+                        <input type="text" id="banner" name="banner" placeholder="https://example.com/banner.jpg" maxlength="500">
+                        <small class="form-hint">Optional. We'll use a default banner if not provided.</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="secondary-btn" onclick="window.location.href='/dashboard'">Cancel</button>
+                        <button type="submit" id="submit-button" class="primary-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                            Create Store
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/auth-utils.js"></script>
+    <script src="/js/create-store.js"></script>
+</body>
+</html>

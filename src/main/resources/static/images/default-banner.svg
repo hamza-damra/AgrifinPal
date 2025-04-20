@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="200" viewBox="0 0 800 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="200" fill="#E2E8F0"/>
+  
+  <!-- Pattern -->
+  <path d="M0 0L800 200" stroke="#CBD5E0" stroke-width="2"/>
+  <path d="M0 40L800 240" stroke="#CBD5E0" stroke-width="2"/>
+  <path d="M0 80L800 280" stroke="#CBD5E0" stroke-width="2"/>
+  <path d="M0 120L800 320" stroke="#CBD5E0" stroke-width="2"/>
+  <path d="M0 160L800 360" stroke="#CBD5E0" stroke-width="2"/>
+  <path d="M0 200L800 400" stroke="#CBD5E0" stroke-width="2"/>
+  
+  <!-- Text -->
+  <text x="400" y="110" font-family="Arial" font-size="24" font-weight="bold" fill="#718096" text-anchor="middle">Store Banner</text>
+</svg>

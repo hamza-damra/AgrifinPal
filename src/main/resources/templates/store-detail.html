@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${store != null ? store.name + ' - AgriFinPal' : 'Store - AgriFinPal'}">Store - AgriFinPal</title>
+    <meta name="description" th:content="${store != null ? store.description : 'View store details and products'}">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/store.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrf-token" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+    
+    <!-- Loading State -->
+    <div id="loading-state" class="loading-state">
+        <div class="container">
+            <div class="spinner"></div>
+            <p class="loading-text">Loading store details...</p>
+        </div>
+    </div>
+    
+    <!-- Error State -->
+    <div id="error-state" class="hidden error-state">
+        <div class="container">
+            <div class="error-card">
+                <h2 class="error-title">Error</h2>
+                <p id="error-message">Store not found.</p>
+                <a href="/stores" class="primary-btn">Back to Stores</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div id="store-content" class="hidden">
+        <!-- Store Banner -->
+        <div id="store-banner" class="store-banner">
+            <div class="banner-overlay"></div>
+            <div class="container">
+                <div class="banner-content">
+                    <h1 id="store-name" class="store-title">Loading...</h1>
+                    <div class="store-details">
+                        <div id="store-location" class="store-detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            <span>Loading...</span>
+                        </div>
+                        <div id="store-contact" class="store-detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            <span>Loading...</span>
+                        </div>
+                        <div id="store-email" class="store-detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            <span>Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Content -->
+        <div class="container main-container">
+            <div class="store-layout">
+                <!-- Store Info -->
+                <div class="store-sidebar">
+                    <div class="sidebar-card">
+                        <div class="store-profile">
+                            <div class="store-logo">
+                                <img id="store-logo-img" src="https://via.placeholder.com/200?text=Loading..." alt="Store logo">
+                            </div>
+                            <div class="store-info">
+                                <h2 id="store-sidebar-name" class="store-name">Loading...</h2>
+                                <div class="store-rating">
+                                    <div id="store-rating-stars" class="rating-stars">
+                                        <!-- Stars will be added here dynamically -->
+                                    </div>
+                                    <span id="store-rating-count" class="rating-count">(0)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="store-sections">
+                            <div class="store-section">
+                                <h3 class="section-title">About</h3>
+                                <p id="store-description" class="section-content">Loading...</p>
+                            </div>
+
+                            <div class="store-section">
+                                <h3 class="section-title">Opening Hours</h3>
+                                <div id="store-hours" class="section-content">
+                                    <div class="hours-row">
+                                        <span>Monday - Friday</span>
+                                        <span>9:00 AM - 8:00 PM</span>
+                                    </div>
+                                    <div class="hours-row">
+                                        <span>Saturday</span>
+                                        <span>10:00 AM - 6:00 PM</span>
+                                    </div>
+                                    <div class="hours-row">
+                                        <span>Sunday</span>
+                                        <span>Closed</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="store-section">
+                                <h3 class="section-title">Location</h3>
+                                <div class="section-content">
+                                    <div id="store-map" class="store-map">
+                                        <img src="https://via.placeholder.com/400x200?text=Map" alt="Map location" class="map-image">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products Section -->
+                <div class="store-products">
+                    <div class="products-card">
+                        <div class="products-header">
+                            <h2 id="products-count" class="products-title">Products (0)</h2>
+                            <div class="products-filters">
+                                <select id="category-filter" class="filter-select">
+                                    <option value="">All Categories</option>
+                                    <!-- Categories will be loaded here -->
+                                </select>
+                                
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="organic-filter" class="checkbox-input">
+                                    <span class="checkbox-label">Organic Only</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="products-grid" class="products-grid">
+                            <!-- Products will be loaded here -->
+                            <div class="loading-placeholder">
+                                <div class="spinner small"></div>
+                                <p>Loading products...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div id="pagination" class="pagination hidden">
+                            <button id="prev-page" class="pagination-btn" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                Previous
+                            </button>
+                            <div id="page-info" class="page-info">Page 1 of 1</div>
+                            <button id="next-page" class="pagination-btn" disabled>
+                                Next
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- No Products State -->
+    <div id="no-products" class="hidden no-results">
+        <div class="container">
+            <div class="no-results-card">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                <h2 class="no-results-title">No Products Found</h2>
+                <p class="no-results-message">This store doesn't have any products matching your filters.</p>
+                <button id="clear-filters-btn" class="secondary-btn">Clear Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/store.js"></script>
+</body>
+</html>

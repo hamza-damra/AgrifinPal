@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - AgriFinPal</title>
+    <meta name="description" content="Complete your purchase">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/colors.css">
+    <script src="/js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <!-- Language scripts (English only) -->
+    <script src="/js/i18n/en.js"></script>
+    <script src="/js/i18n/i18n.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrf-token" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}" />
+    <input type="hidden" id="stripe-public-key" th:value="${stripePublicKey}" />
+
+    <!-- Checkout Page -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <a href="/cart" class="inline-flex items-center text-green-600 hover:text-green-700 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                <span>Back to cart</span>
+            </a>
+            <h1 class="text-3xl font-bold text-gray-900">Checkout</h1>
+            <p class="text-gray-600 mt-2">Complete your purchase</p>
+        </div>
+
+        <!-- Checkout Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Order Summary -->
+            <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
+
+                <!-- Order Items -->
+                <div class="border-b border-gray-200 pb-4 mb-4">
+                    <div class="space-y-4">
+                        <div th:each="item : ${cartItems}" class="flex items-center py-2">
+                            <div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                                <img th:src="${item.product.productImage}" th:alt="${item.product.productName}" class="h-full w-full object-cover object-center">
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h3 class="text-base font-medium text-gray-900" th:text="${item.product.productName}">Product Name</h3>
+                                <p class="text-sm text-gray-500">
+                                    <span th:text="${item.quantity}">1</span> x
+                                    <span th:text="${#numbers.formatCurrency(item.product.price)}">$19.99</span>
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-base font-medium text-gray-900" th:text="${#numbers.formatCurrency(item.product.price * item.quantity)}">$19.99</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Total -->
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <p class="text-base text-gray-600">Subtotal</p>
+                        <p class="text-base font-medium text-gray-900" th:text="${#numbers.formatCurrency(total)}">$99.99</p>
+                    </div>
+                    <div class="flex justify-between">
+                        <p class="text-base text-gray-600">Shipping</p>
+                        <p class="text-base font-medium text-gray-900">Free</p>
+                    </div>
+                    <div class="flex justify-between border-t border-gray-200 pt-2">
+                        <p class="text-lg font-bold text-gray-900">Total</p>
+                        <p class="text-lg font-bold text-gray-900" th:text="${#numbers.formatCurrency(total)}">$99.99</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Form -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Payment Details</h2>
+
+                <!-- Payment Form -->
+                <form id="payment-form" class="space-y-4">
+                    <div class="space-y-2">
+                        <label for="card-element" class="block text-sm font-medium text-gray-700">Credit or debit card</label>
+                        <div id="card-element" class="p-3 border border-gray-300 rounded-md">
+                            <!-- Stripe Card Element will be inserted here -->
+                        </div>
+                        <div id="card-errors" class="text-red-600 text-sm" role="alert"></div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button id="submit-payment" type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-md font-bold transition-colors flex items-center justify-center">
+                            <span id="button-text">Pay Now</span>
+                            <div id="spinner" class="hidden">
+                                <svg class="animate-spin h-5 w-5 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Test Card Info -->
+                <div class="mt-6 p-4 bg-gray-50 rounded-md">
+                    <h3 class="text-sm font-medium text-gray-700 mb-2">Test Card Information</h3>
+                    <p class="text-xs text-gray-600">Card Number: 4242 4242 4242 4242</p>
+                    <p class="text-xs text-gray-600">Expiry: Any future date (e.g., 12/25)</p>
+                    <p class="text-xs text-gray-600">CVC: Any 3 digits</p>
+                    <p class="text-xs text-gray-600">ZIP: Any 5 digits</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Success Message (hidden by default) -->
+        <div id="payment-success" class="hidden mt-8 bg-green-100 border-2 border-green-300 text-green-800 rounded-lg p-8 text-center shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <h2 class="text-2xl font-bold mb-3">Payment Successful!</h2>
+            <p class="mb-4 text-lg">Your order has been placed successfully.</p>
+            <p class="mb-4 text-sm">You will be redirected to your orders page in a few seconds...</p>
+            <a href="/dashboard" class="inline-flex items-center bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors">
+                <span>Go to your orders</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </a>
+        </div>
+
+        <!-- Payment Error Message (hidden by default) -->
+        <div id="payment-error" class="hidden mt-8 bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 class="text-xl font-bold mb-2">Payment Failed</h2>
+            <p id="error-message" class="mb-4">There was an error processing your payment. Please try again.</p>
+            <button id="try-again" class="inline-flex items-center text-red-600 hover:text-red-700">
+                <span>Try again</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="/js/checkout.js"></script>
+    <script src="/js/global-cart-clearer.js"></script>
+</body>
+</html>

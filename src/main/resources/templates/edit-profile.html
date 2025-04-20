@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - AgriFinPal</title>
+    <meta name="description" content="User profile page with editable information">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/colors.css">
+    <script src="/js/tailwind-config.js"></script>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center mb-8">
+                    <button onclick="window.history.back()" class="flex items-center text-gray-600 hover:text-gray-900 mr-4">
+                        <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+                        <span>Back</span>
+                    </button>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-900 flex items-center">
+                        <i data-lucide="user" class="w-6 h-6 mr-2"></i>
+                        Profile Settings
+                    </h1>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-6 md:p-8">
+                        <div id="error-message" class="hidden mb-6 p-4 bg-red-50 text-red-700 rounded-md border border-red-200 flex items-start">
+                            <i data-lucide="alert-circle" class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span id="error-text"></span>
+                        </div>
+
+                        <div id="success-message" class="hidden mb-6 p-4 bg-green-50 text-green-700 rounded-md border border-green-200">
+                            Profile updated successfully!
+                        </div>
+
+                        <div id="loading-state" class="flex flex-col items-center justify-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
+                            <p class="text-gray-600">Loading profile data...</p>
+                        </div>
+
+                        <form id="profile-form" class="space-y-6 hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2 flex items-center space-x-6">
+                                    <div class="relative">
+                                        <img id="profile-image-preview" src="/images/default-profile.svg" alt="Profile" class="w-20 h-20 rounded-full object-cover border-2 border-gray-200">
+                                        <button type="button" class="absolute -bottom-2 -right-2 bg-white rounded-full p-1 border border-gray-300 shadow-sm hover:bg-gray-50">
+                                            <i data-lucide="camera" class="w-4 h-4 text-gray-600"></i>
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-900">Profile Photo</h3>
+                                        <p class="text-sm text-gray-500">Enter a URL for your profile image</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label for="fullName" class="block text-gray-700 font-medium mb-2">Full Name</label>
+                                    <input type="text" id="fullName" name="fullName" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                                </div>
+
+                                <div>
+                                    <label for="username" class="block text-gray-700 font-medium mb-2">Username</label>
+                                    <input type="text" id="username" name="username" class="w-full px-4 py-3 border border-gray-300 rounded-md bg-gray-100" disabled>
+                                </div>
+
+                                <div>
+                                    <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
+                                    <input type="email" id="email" name="email" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                                </div>
+
+                                <div>
+                                    <label for="phone" class="block text-gray-700 font-medium mb-2">Phone</label>
+                                    <input type="tel" id="phone" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                </div>
+
+                                <div>
+                                    <label for="region" class="block text-gray-700 font-medium mb-2">Region</label>
+                                    <select id="region" name="region" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                        <option value="">Select Region</option>
+                                        <option value="north">North</option>
+                                        <option value="central">Central</option>
+                                        <option value="south">South</option>
+                                        <option value="gaza">Gaza</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="agricultureType" class="block text-gray-700 font-medium mb-2">Agriculture Type</label>
+                                    <select id="agricultureType" name="agricultureType" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                        <option value="">Select Agriculture Type</option>
+                                        <option value="olives">Olives</option>
+                                        <option value="vegetables">Vegetables</option>
+                                        <option value="fruits">Fruits</option>
+                                        <option value="grains">Grains</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label for="profileImage" class="block text-gray-700 font-medium mb-2">Profile Image URL</label>
+                                    <input type="text" id="profileImage" name="profileImage" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://example.com/profile.jpg">
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label for="bio" class="block text-gray-700 font-medium mb-2">Bio</label>
+                                    <textarea id="bio" name="bio" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Tell us about yourself..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="mt-8 flex justify-end space-x-4">
+                                <button type="button" id="cancel-button" class="px-6 py-3 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="submit" id="submit-button" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-md font-bold transition-colors flex items-center justify-center">
+                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/auth-utils.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Validate token before initializing
+            const isAuthenticated = await validateToken(true);
+            if (isAuthenticated) {
+                initEditProfilePage();
+            }
+        });
+
+        /**
+         * Initialize the edit profile page
+         */
+        async function initEditProfilePage() {
+            // Set up event listeners
+            setupEventListeners();
+
+            // Load user data
+            await loadUserData();
+        }
+
+        /**
+         * Set up event listeners
+         */
+        function setupEventListeners() {
+            // Form submission
+            const form = document.getElementById('profile-form');
+            form.addEventListener('submit', handleFormSubmit);
+
+            // Cancel button
+            const cancelButton = document.getElementById('cancel-button');
+            cancelButton.addEventListener('click', function() {
+                window.location.href = '/dashboard';
+            });
+
+            // Profile image input
+            const imageInput = document.getElementById('profileImage');
+            imageInput.addEventListener('input', handleImageUrlChange);
+        }
+
+        /**
+         * Load user data from API
+         */
+        async function loadUserData() {
+            try {
+                const loadingState = document.getElementById('loading-state');
+                const form = document.getElementById('profile-form');
+
+                // Show loading state
+                loadingState.classList.remove('hidden');
+                form.classList.add('hidden');
+
+                // Fetch user data
+                const response = await authenticatedFetch('/api/auth/me', {
+                    method: 'GET'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch user data: ${response.status}`);
+                }
+
+                const userData = await response.json();
+                console.log('User data loaded:', userData);
+
+                // Fill form with user data
+                fillProfileForm(userData);
+
+                // Hide loading state, show form
+                loadingState.classList.add('hidden');
+                form.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showError(`Error loading user data: ${error.message}`);
+            }
+        }
+
+        /**
+         * Fill the form with user data
+         * @param {Object} userData The user data
+         */
+        function fillProfileForm(userData) {
+            const form = document.getElementById('profile-form');
+
+            // Set form values
+            form.elements.username.value = userData.username || '';
+            form.elements.fullName.value = userData.fullName || '';
+            form.elements.email.value = userData.email || '';
+            form.elements.phone.value = userData.phone || '';
+            form.elements.region.value = userData.region || '';
+            form.elements.agricultureType.value = userData.agricultureType || '';
+            form.elements.bio.value = userData.bio || '';
+            form.elements.profileImage.value = userData.profileImage || '';
+
+            // Update profile image preview
+            updateProfileImagePreview(userData.profileImage || '/images/default-profile.svg');
+        }
+
+        /**
+         * Handle form submission
+         * @param {Event} event The submit event
+         */
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const submitButton = document.getElementById('submit-button');
+
+            // Validate form
+            if (!validateForm(form)) {
+                return;
+            }
+
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.innerHTML = `
+                <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                Saving...
+            `;
+
+            try {
+                // Get form data
+                const formData = {
+                    fullName: form.elements.fullName.value.trim(),
+                    email: form.elements.email.value.trim(),
+                    phone: form.elements.phone.value.trim() || null,
+                    region: form.elements.region.value.trim() || null,
+                    agricultureType: form.elements.agricultureType.value.trim() || null,
+                    bio: form.elements.bio.value.trim() || null,
+                    profileImage: form.elements.profileImage.value.trim() || null
+                };
+
+                console.log('Submitting profile data:', formData);
+
+                // Send update request
+                const response = await authenticatedFetch('/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to update profile');
+                }
+
+                // Show success message
+                const successMessage = document.getElementById('success-message');
+                successMessage.classList.remove('hidden');
+
+                // Hide error message if shown
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.classList.add('hidden');
+
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Redirect to dashboard after delay
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 2000);
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showError(error.message);
+
+                // Scroll to top to show error
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } finally {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+                lucide.createIcons();
+            }
+        }
+
+        /**
+         * Validate the form
+         * @param {HTMLFormElement} form The form to validate
+         * @returns {boolean} True if valid, false otherwise
+         */
+        function validateForm(form) {
+            // Required fields
+            const requiredFields = ['fullName', 'email'];
+            let isValid = true;
+
+            // Check each required field
+            requiredFields.forEach(fieldName => {
+                const field = form.elements[fieldName];
+                const value = field.value.trim();
+
+                if (!value) {
+                    field.classList.add('border-red-500');
+                    isValid = false;
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            });
+
+            // Validate email format
+            const emailField = form.elements.email;
+            const emailValue = emailField.value.trim();
+
+            if (emailValue && !isValidEmail(emailValue)) {
+                emailField.classList.add('border-red-500');
+                isValid = false;
+            }
+
+            // Show error message if invalid
+            if (!isValid) {
+                showError('Please fill in all required fields correctly.');
+            }
+
+            return isValid;
+        }
+
+        /**
+         * Validate email format
+         * @param {string} email The email to validate
+         * @returns {boolean} True if valid, false otherwise
+         */
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        /**
+         * Handle image URL change
+         * @param {Event} event The input event
+         */
+        function handleImageUrlChange(event) {
+            const imageUrl = event.target.value.trim();
+
+            if (imageUrl) {
+                updateProfileImagePreview(imageUrl);
+            } else {
+                // Use default image
+                updateProfileImagePreview('/images/default-profile.svg');
+            }
+        }
+
+        /**
+         * Update profile image preview
+         * @param {string} imageUrl The image URL
+         */
+        function updateProfileImagePreview(imageUrl) {
+            const previewImage = document.getElementById('profile-image-preview');
+
+            previewImage.src = imageUrl;
+            previewImage.alt = 'Profile image preview';
+
+            // Handle image load error
+            previewImage.onerror = function() {
+                previewImage.src = '/images/default-profile.svg';
+                previewImage.alt = 'Default profile image';
+            };
+        }
+
+        /**
+         * Show error message
+         * @param {string} message The error message to show
+         */
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

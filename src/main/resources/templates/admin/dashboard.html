@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - AgriFinPal</title>
+    <meta name="description" content="Admin dashboard for AgriFinPal platform">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/admin.css">
+    <script src="/js/admin-tailwind-config.js"></script>
+    <script src="/js/admin-toast.js"></script>
+    <script src="/js/image-fallback.js"></script>
+    <script src="/js/user-status.js"></script>
+
+    <script>
+        // Global function for updating user status
+        function updateUserStatus(userId, status, userType, event) {
+            if (!userId || !status || !userType) {
+                console.error('Missing required parameters for updateUserStatus');
+                return;
+            }
+
+            // Check if the status is valid for the user type
+            if (typeof UserStatus !== 'undefined' && typeof UserStatus.isValidStatusForUserType === 'function') {
+                if (!UserStatus.isValidStatusForUserType(status, userType)) {
+                    console.error(`Invalid status ${status} for user type ${userType}`);
+                    if (typeof AdminToast !== 'undefined') {
+                        AdminToast.error(`Invalid status ${status} for ${userType}`);
+                    }
+                    return;
+                }
+            }
+
+            console.log(`Updating ${userType} status: ${userId} to ${status}`);
+
+            // Get token from localStorage
+            const token = localStorage.getItem('token');
+
+            // Determine the API endpoint based on user type
+            let endpoint;
+            if (userType === 'admin') {
+                endpoint = `/api/admin/admins/${userId}/status?status=${status}`;
+            } else if (userType === 'buyer' || userType === 'seller') {
+                endpoint = `/api/admin/users/${userId}/update-status?status=${status}`;
+            } else {
+                console.error('Invalid user type:', userType);
+                return;
+            }
+
+            // Show loading state
+            // Find the element that was clicked
+            const clickedElement = event ? event.target.closest('a') || event.target.closest('button') : null;
+
+            console.log('Clicked element:', clickedElement);
+
+            // Find the status cell
+            let statusCellParent;
+            let originalContent;
+
+            if (clickedElement) {
+                // If an element was clicked, find its parent cell
+                statusCellParent = clickedElement.closest('td');
+                originalContent = statusCellParent.innerHTML;
+            } else {
+                // Fallback to looking for the status dropdown
+                const statusCell = document.querySelector(`#status-menu-button-${userId}`);
+                if (!statusCell) {
+                    console.error(`Could not find status button for user ${userId}`);
+                    return;
+                }
+                statusCellParent = statusCell.closest('td');
+                originalContent = statusCellParent.innerHTML;
+            }
+            // Save the original content and add a loading spinner
+            if (!statusCellParent._originalContent) {
+                statusCellParent._originalContent = statusCellParent.innerHTML;
+            }
+
+            // Create a loading overlay instead of replacing the content
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10';
+            loadingOverlay.innerHTML = `
+                <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary-600"></div>
+            `;
+
+            // Make sure the parent has position relative for absolute positioning
+            statusCellParent.style.position = 'relative';
+            statusCellParent.appendChild(loadingOverlay);
+
+            // Call API to update status
+            fetch(endpoint, {
+                method: 'PUT', // Using PUT method as required by the backend
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error(`Server responded with status: ${response.status}`);
+                    throw new Error(`Failed to update ${userType} status: ${response.statusText}`);
+                }
+                // Try to parse as JSON, but handle text responses too
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    return response.text().then(text => {
+                        return { message: text || `${userType.charAt(0).toUpperCase() + userType.slice(1)} status updated successfully` };
+                    });
+                }
+            })
+            .then(data => {
+                // Show success message
+                if (window.AdminToast) {
+                    AdminToast.success(data.message || `${userType.charAt(0).toUpperCase() + userType.slice(1)} status updated successfully`);
+                } else {
+                    console.log('Success:', data.message || `${userType.charAt(0).toUpperCase() + userType.slice(1)} status updated successfully`);
+                }
+
+                // Remove the loading overlay
+                const loadingOverlay = statusCellParent.querySelector('div.absolute.inset-0');
+                if (loadingOverlay) {
+                    statusCellParent.removeChild(loadingOverlay);
+                }
+
+                // Update the UI to reflect the new status without refreshing the page
+                if (userType === 'seller') {
+                    // Get the row containing the seller
+                    const row = statusCellParent.closest('tr');
+
+                    // Find the status cell (4th column)
+                    const statusCell = row.querySelector('td:nth-child(4)');
+
+                    // Find the block button in the actions column
+                    const blockButton = row.querySelector('button[data-action="block"]');
+
+                    // Create a temporary container to hold the new status badge
+                    const tempContainer = document.createElement('div');
+
+                    // Update the status cell with the new status badge
+                    if (UserStatus && typeof UserStatus.renderStatusBadge === 'function') {
+                        tempContainer.innerHTML = UserStatus.renderStatusBadge(status);
+
+                        // Replace the content of the status cell with the new badge
+                        // Use a fade transition
+                        statusCell.style.opacity = '0';
+                        setTimeout(() => {
+                            statusCell.innerHTML = tempContainer.innerHTML;
+                            statusCell.style.opacity = '1';
+                            statusCell.style.transition = 'opacity 0.3s ease-in-out';
+                        }, 50);
+                    } else {
+                        // Fallback if UserStatus is not available
+                        statusCell.innerHTML = `
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${status}
+                            </span>
+                        `;
+                    }
+
+                    // Update the block button
+                    if (blockButton) {
+                        const isBanned = status === 'BANNED';
+                        console.log('Updating block button, status:', status, 'isBanned:', isBanned);
+
+                        // Update the button icon with animation
+                        const icon = blockButton.querySelector('i');
+                        if (icon) {
+                            // Apply fade out animation
+                            icon.style.opacity = '0';
+                            icon.style.transform = 'scale(0.8)';
+                            icon.style.transition = 'opacity 0.2s ease-in-out, transform 0.2s ease-in-out';
+
+                            // Update the icon after a short delay
+                            setTimeout(() => {
+                                icon.className = `fas ${isBanned ? 'fa-unlock' : 'fa-ban'}`;
+
+                                // Apply fade in animation
+                                icon.style.opacity = '1';
+                                icon.style.transform = 'scale(1)';
+                            }, 200);
+                        }
+
+                        // Update the button title
+                        blockButton.title = `${isBanned ? 'Unblock' : 'Block'} seller`;
+
+                        // Update the button data attribute for future reference
+                        blockButton.setAttribute('data-current-status', status);
+                    }
+                } else {
+                    // For other user types, just update the status cell
+                    if (UserStatus && typeof UserStatus.renderStatusDropdown === 'function') {
+                        statusCellParent.innerHTML = UserStatus.renderStatusDropdown(userId, status, userType);
+                    } else {
+                        // Fallback if UserStatus is not available
+                        statusCellParent.innerHTML = `
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${status}
+                            </span>
+                        `;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error(`Error updating ${userType} status:`, error);
+
+                if (window.AdminToast) {
+                    AdminToast.error(`Failed to update ${userType} status`);
+                } else {
+                    console.error(`Failed to update ${userType} status`);
+                }
+
+                // Remove the loading overlay
+                const loadingOverlay = statusCellParent.querySelector('div.absolute.inset-0');
+                if (loadingOverlay) {
+                    statusCellParent.removeChild(loadingOverlay);
+                }
+
+                // Restore the original content with a fade-in effect
+                statusCellParent.style.opacity = '0';
+                setTimeout(() => {
+                    // If we saved the original content, restore it
+                    if (statusCellParent._originalContent) {
+                        statusCellParent.innerHTML = statusCellParent._originalContent;
+                    } else {
+                        // Fallback to the captured original content
+                        statusCellParent.innerHTML = originalContent;
+                    }
+                    statusCellParent.style.opacity = '1';
+                    statusCellParent.style.transition = 'opacity 0.3s ease-in-out';
+                }, 50);
+            });
+        }
+    </script>
+</head>
+<body class="bg-gray-50 font-sans" x-data="adminApp()" x-init="init()" x-cloak>
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrf-token" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+    <!-- Loading Overlay -->
+    <div x-show="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-75">
+        <div class="flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-primary-400 border-t-primary-600 rounded-full animate-spin"></div>
+            <p class="mt-3 text-gray-700">Loading admin panel...</p>
+        </div>
+    </div>
+
+    <!-- Admin Layout -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="hidden md:flex md:flex-shrink-0">
+            <div class="flex flex-col w-64 bg-white border-r border-gray-200">
+                <div class="flex items-center justify-center h-16 px-4 border-b border-gray-200">
+                    <span class="text-xl font-bold text-primary-700">AgriFinPal Admin</span>
+                </div>
+                <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
+                    <nav class="space-y-1">
+                        <!-- Dashboard -->
+                        <a href="#" @click="setActiveTab('dashboard')"
+                           :class="{'bg-primary-50 text-primary-700': activeTab === 'dashboard', 'text-gray-700 hover:bg-gray-100': activeTab !== 'dashboard'}"
+                           class="flex items-center px-3 py-2 text-sm font-medium rounded-md group">
+                            <i class="fas fa-tachometer-alt mr-3 text-gray-500 group-hover:text-gray-700 flex-shrink-0"></i>
+                            Dashboard
+                        </a>
+
+                        <!-- Users Management -->
+                        <div>
+                            <div @click="toggleUsersMenu()"
+                                 class="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 rounded-md cursor-pointer hover:bg-gray-100">
+                                <div class="flex items-center">
+                                    <i class="fas fa-users mr-3 text-gray-500 flex-shrink-0"></i>
+                                    Users
+                                </div>
+                                <i class="fas fa-chevron-down text-xs transform transition-transform duration-200"
+                                   :class="{'rotate-180': showUsersMenu}"></i>
+                            </div>
+                            <div x-show="showUsersMenu" x-transition class="mt-2 space-y-1 pl-4">
+                                <a href="#" @click="setActiveTab('buyers')"
+                                   :class="{'bg-primary-50 text-primary-700': activeTab === 'buyers', 'text-gray-700 hover:bg-gray-100': activeTab !== 'buyers'}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-user mr-2 text-gray-500 hover:text-gray-700 flex-shrink-0"></i>
+                                    Buyers
+                                </a>
+                                <a href="#" @click="setActiveTab('sellers')"
+                                   :class="{'bg-primary-50 text-primary-700': activeTab === 'sellers', 'text-gray-700 hover:bg-gray-100': activeTab !== 'sellers'}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-store-alt mr-2 text-gray-500 hover:text-gray-700 flex-shrink-0"></i>
+                                    Sellers
+                                </a>
+                                <a href="#" @click="setActiveTab('admins')"
+                                   :class="{'bg-primary-50 text-primary-700': activeTab === 'admins', 'text-gray-700 hover:bg-gray-100': activeTab !== 'admins'}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-shield-alt mr-2 text-gray-500 hover:text-gray-700 flex-shrink-0"></i>
+                                    Administrators
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Platform Content -->
+                        <div>
+                            <div @click="toggleContentMenu()"
+                                 class="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 rounded-md cursor-pointer hover:bg-gray-100">
+                                <div class="flex items-center">
+                                    <i class="fas fa-boxes mr-3 text-gray-500 flex-shrink-0"></i>
+                                    Products
+                                </div>
+                                <i class="fas fa-chevron-down text-xs transform transition-transform duration-200"
+                                   :class="{'rotate-180': showContentMenu}"></i>
+                            </div>
+                            <div x-show="showContentMenu" x-transition class="mt-2 space-y-1 pl-4">
+                                <a href="#" @click="setActiveTab('products')"
+                                   :class="{'bg-primary-50 text-primary-700': activeTab === 'products', 'text-gray-700 hover:bg-gray-100': activeTab !== 'products'}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-shopping-basket mr-2 text-gray-500 hover:text-gray-700 flex-shrink-0"></i>
+                                    All Products
+                                </a>
+                                <a href="#" @click="setActiveTab('categories')"
+                                   :class="{'bg-primary-50 text-primary-700': activeTab === 'categories', 'text-gray-700 hover:bg-gray-100': activeTab !== 'categories'}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-tags mr-2 text-gray-500 hover:text-gray-700 flex-shrink-0"></i>
+                                    Product Categories
+                                </a>
+                            </div>
+                        </div>
+
+
+
+                        <!-- Orders -->
+                        <a href="#" @click="setActiveTab('orders')"
+                           :class="{'bg-primary-50 text-primary-700': activeTab === 'orders', 'text-gray-700 hover:bg-gray-100': activeTab !== 'orders'}"
+                           class="flex items-center px-3 py-2 text-sm font-medium rounded-md group">
+                            <i class="fas fa-clipboard-list mr-3 text-gray-500 group-hover:text-gray-700 flex-shrink-0"></i>
+                            Orders
+                            <span class="ml-auto px-2 py-0.5 text-xs bg-primary-100 text-primary-800 rounded-full">24</span>
+                        </a>
+
+                        <!-- Reports -->
+                        <a href="#" @click="setActiveTab('reports')"
+                           :class="{'bg-primary-50 text-primary-700': activeTab === 'reports', 'text-gray-700 hover:bg-gray-100': activeTab !== 'reports'}"
+                           class="flex items-center px-3 py-2 text-sm font-medium rounded-md group">
+                            <i class="fas fa-chart-bar mr-3 text-gray-500 group-hover:text-gray-700 flex-shrink-0"></i>
+                            Reports
+                        </a>
+
+                        <!-- Settings -->
+                        <div>
+                            <div @click="toggleSettingsMenu()"
+                                 class="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 rounded-md cursor-pointer hover:bg-gray-100">
+                                <div class="flex items-center">
+                                    <i class="fas fa-cog mr-3 text-gray-500 flex-shrink-0"></i>
+                                    Settings
+                                </div>
+                                <i class="fas fa-chevron-down text-xs transform transition-transform duration-200"
+                                   :class="{'rotate-180': showSettingsMenu}"></i>
+                            </div>
+                            <div x-show="showSettingsMenu" x-transition class="mt-2 space-y-1 pl-4">
+                                <a href="#" @click="setActiveTab('platform-settings')"
+                                   :class="{'bg-primary-50 text-primary-700': activeTab === 'platform-settings', 'text-gray-700 hover:bg-gray-100': activeTab !== 'platform-settings'}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-globe mr-2 text-gray-500 hover:text-gray-700 flex-shrink-0"></i>
+                                    Platform Settings
+                                </a>
+                                <a href="#" @click="setActiveTab('payment-methods')"
+                                   :class="{'bg-primary-50 text-primary-700': activeTab === 'payment-methods', 'text-gray-700 hover:bg-gray-100': activeTab !== 'payment-methods'}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-credit-card mr-2 text-gray-500 hover:text-gray-700 flex-shrink-0"></i>
+                                    Payment Methods
+                                </a>
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+                <div class="p-4 border-t border-gray-200">
+                    <div class="flex items-center">
+                        <img class="w-10 h-10 rounded-full" src="https://picsum.photos/200?random=2" alt="Admin avatar">
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-700">Admin User</p>
+                            <p class="text-xs text-gray-500">Super Admin</p>
+                        </div>
+                    </div>
+                    <button @click="logout()" onclick="if(typeof logout === 'function') logout(); return false;" class="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile sidebar -->
+        <div x-show="mobileMenuOpen" class="fixed inset-0 z-40 md:hidden" @click="mobileMenuOpen = false">
+            <div class="fixed inset-0 bg-gray-600 bg-opacity-75"></div>
+            <div class="fixed inset-0 flex z-40">
+                <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white" @click.stop>
+                    <div class="absolute top-0 right-0 -mr-12 pt-2">
+                        <button @click="mobileMenuOpen = false" class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                            <span class="sr-only">Close sidebar</span>
+                            <i class="fas fa-times h-6 w-6 text-white"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
+                        <div class="flex-shrink-0 flex items-center px-4">
+                            <span class="text-xl font-bold text-primary-700">AgriFinPal Admin</span>
+                        </div>
+                        <nav class="mt-5 px-2 space-y-1">
+                            <!-- Mobile navigation items would go here -->
+                            <!-- Similar to desktop sidebar but adapted for mobile -->
+                        </nav>
+                    </div>
+                    <div class="flex-shrink-0 flex border-t border-gray-200 p-4">
+                        <div class="flex items-center">
+                            <img class="w-10 h-10 rounded-full" src="https://picsum.photos/200?random=2" alt="Admin avatar">
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-700">Admin User</p>
+                                <p class="text-xs text-gray-500">Super Admin</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-shrink-0 w-14"></div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto focus:outline-none">
+            <!-- Top Navigation -->
+            <div class="bg-white shadow-sm">
+                <div class="px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between h-16">
+                        <div class="flex items-center">
+                            <button @click="mobileMenuOpen = true" class="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none">
+                                <span class="sr-only">Open main menu</span>
+                                <i class="fas fa-bars h-6 w-6"></i>
+                            </button>
+                            <h1 class="ml-4 text-lg font-semibold text-gray-900" x-text="getActiveTabTitle()"></h1>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="relative">
+                                <button @click="toggleNotifications()" class="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                    <span class="sr-only">View notifications</span>
+                                    <i class="fas fa-bell h-6 w-6"></i>
+                                </button>
+                                <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
+                            </div>
+                            <div class="ml-4 relative" @click.away="profileMenuOpen = false">
+                                <button @click="profileMenuOpen = !profileMenuOpen" class="max-w-xs flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                    <span class="sr-only">Open user menu</span>
+                                    <img class="h-8 w-8 rounded-full" src="https://picsum.photos/200?random=2" alt="Admin avatar">
+                                </button>
+                                <div x-show="profileMenuOpen" x-transition class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Your Profile</a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                                    <a href="#" @click="logout()" onclick="if(typeof logout === 'function') logout(); return false;" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign out</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <main class="flex-1">
+                <div class="py-6">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <!-- Dashboard Content -->
+                        <div x-show="activeTab === 'dashboard'" class="space-y-6">
+                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                                <!-- Stats Cards -->
+                                <div class="bg-white overflow-hidden shadow rounded-lg">
+                                    <div class="px-4 py-5 sm:p-6">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 bg-primary-100 rounded-md p-3">
+                                                <i class="fas fa-users text-primary-600"></i>
+                                            </div>
+                                            <div class="ml-5 w-0 flex-1">
+                                                <dt class="text-sm font-medium text-gray-500 truncate">Total Users</dt>
+                                                <dd class="flex items-baseline">
+                                                    <div class="text-2xl font-semibold text-gray-900" data-stat="total-users">
+                                                        <div class="animate-pulse flex space-x-4">
+                                                            <div class="h-6 w-16 bg-gray-200 rounded"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                        <i class="fas fa-arrow-up text-xs"></i>
+                                                        <span class="sr-only">Increased by</span>
+                                                        <span data-stat="user-growth">
+                                                            <div class="animate-pulse">
+                                                                <div class="h-4 w-8 bg-green-100 rounded"></div>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </dd>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white overflow-hidden shadow rounded-lg">
+                                    <div class="px-4 py-5 sm:p-6">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 bg-primary-100 rounded-md p-3">
+                                                <i class="fas fa-store-alt text-primary-600"></i>
+                                            </div>
+                                            <div class="ml-5 w-0 flex-1">
+                                                <dt class="text-sm font-medium text-gray-500 truncate">Active Sellers</dt>
+                                                <dd class="flex items-baseline">
+                                                    <div class="text-2xl font-semibold text-gray-900" data-stat="active-sellers">
+                                                        <div class="animate-pulse flex space-x-4">
+                                                            <div class="h-6 w-16 bg-gray-200 rounded"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                        <i class="fas fa-arrow-up text-xs"></i>
+                                                        <span class="sr-only">Increased by</span>
+                                                        <span data-stat="seller-growth">
+                                                            <div class="animate-pulse">
+                                                                <div class="h-4 w-8 bg-green-100 rounded"></div>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </dd>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white overflow-hidden shadow rounded-lg">
+                                    <div class="px-4 py-5 sm:p-6">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 bg-primary-100 rounded-md p-3">
+                                                <i class="fas fa-shopping-basket text-primary-600"></i>
+                                            </div>
+                                            <div class="ml-5 w-0 flex-1">
+                                                <dt class="text-sm font-medium text-gray-500 truncate">Total Products</dt>
+                                                <dd class="flex items-baseline">
+                                                    <div class="text-2xl font-semibold text-gray-900" data-stat="total-products">
+                                                        <div class="animate-pulse flex space-x-4">
+                                                            <div class="h-6 w-16 bg-gray-200 rounded"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                        <i class="fas fa-arrow-up text-xs"></i>
+                                                        <span class="sr-only">Increased by</span>
+                                                        <span data-stat="product-growth">
+                                                            <div class="animate-pulse">
+                                                                <div class="h-4 w-8 bg-green-100 rounded"></div>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </dd>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white overflow-hidden shadow rounded-lg">
+                                    <div class="px-4 py-5 sm:p-6">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 bg-primary-100 rounded-md p-3">
+                                                <i class="fas fa-clipboard-list text-primary-600"></i>
+                                            </div>
+                                            <div class="ml-5 w-0 flex-1">
+                                                <dt class="text-sm font-medium text-gray-500 truncate">Monthly Orders</dt>
+                                                <dd class="flex items-baseline">
+                                                    <div class="text-2xl font-semibold text-gray-900" data-stat="monthly-orders">
+                                                        <div class="animate-pulse flex space-x-4">
+                                                            <div class="h-6 w-16 bg-gray-200 rounded"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                        <i class="fas fa-arrow-up text-xs"></i>
+                                                        <span class="sr-only">Increased by</span>
+                                                        <span data-stat="order-growth">
+                                                            <div class="animate-pulse">
+                                                                <div class="h-4 w-8 bg-green-100 rounded"></div>
+                                                            </div>
+                                                        </span>
+                                                    </div>
+                                                </dd>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                <!-- Recent Orders -->
+                                <div class="bg-white shadow rounded-lg overflow-hidden">
+                                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                                        <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Orders</h3>
+                                    </div>
+                                    <div class="divide-y divide-gray-200">
+                                        <div class="px-4 py-4 sm:px-6">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                        <i class="fas fa-shopping-bag text-gray-500"></i>
+                                                    </div>
+                                                    <div class="ml-4">
+                                                        <div class="text-sm font-medium text-gray-900">Order #12345</div>
+                                                        <div class="text-sm text-gray-500">Olive Oil - 5kg</div>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-2 flex-shrink-0 flex">
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- More order items... -->
+                                    </div>
+                                    <div class="px-4 py-4 sm:px-6 border-t border-gray-200">
+                                        <a href="#" class="text-sm font-medium text-primary-600 hover:text-primary-500">View all orders</a>
+                                    </div>
+                                </div>
+
+                                <!-- Recent Sellers -->
+                                <div class="bg-white shadow rounded-lg overflow-hidden">
+                                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                                        <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Sellers</h3>
+                                    </div>
+                                    <div class="divide-y divide-gray-200">
+                                        <div class="px-4 py-4 sm:px-6">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10 rounded-full overflow-hidden">
+                                                    <img class="h-full w-full" src="https://picsum.photos/200?random=3" alt="Seller avatar">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Ahmed Hassan</div>
+                                                    <div class="text-sm text-gray-500">Jenin Olive Farm</div>
+                                                </div>
+                                                <div class="ml-auto">
+                                                    <span class="text-xs text-gray-500">Joined 2 days ago</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- More seller items... -->
+                                    </div>
+                                    <div class="px-4 py-4 sm:px-6 border-t border-gray-200">
+                                        <a href="#" class="text-sm font-medium text-primary-600 hover:text-primary-500">View all sellers</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Products Management -->
+                        <div x-show="activeTab === 'products'" class="space-y-6">
+                            <!-- Products content will be loaded dynamically by JavaScript -->
+                        </div>
+
+                        <!-- Buyers Management -->
+                        <div x-show="activeTab === 'buyers'" class="space-y-6">
+                            <!-- This div will be populated by the fetchBuyers() function -->
+                            <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                            </div>
+                            <!-- Pagination will be added by the fetchBuyers() function -->
+                        </div>
+
+                        <!-- Sellers Management -->
+                        <div x-show="activeTab === 'sellers'" class="space-y-6">
+                            <!-- This div will be populated by the fetchSellers() function -->
+                            <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                                    <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                                        <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                                            <div class="bg-white px-4 py-5 border-b border-gray-200 sm:px-6">
+                                                <div class="-ml-4 -mt-2 flex items-center justify-between flex-wrap sm:flex-nowrap">
+                                                    <div class="ml-4 mt-2">
+                                                        <h3 class="text-lg leading-6 font-medium text-gray-900">Sellers</h3>
+                                                    </div>
+                                                    <div class="ml-4 mt-2 flex-shrink-0">
+                                                        <button type="button" class="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                                            <i class="fas fa-plus mr-2"></i> Add Seller
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-50">
+                                                    <tr>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    <tr>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="flex items-center">
+                                                                <div class="flex-shrink-0 h-10 w-10">
+                                                                    <img class="h-10 w-10 rounded-full" src="https://picsum.photos/200?random=5" alt="">
+                                                                </div>
+                                                                <div class="ml-4">
+                                                                    <div class="text-sm font-medium text-gray-900">Jenin Olive Farm</div>
+                                                                    <div class="text-sm text-gray-500">5 products</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="text-sm text-gray-900">Ahmed Hassan</div>
+                                                            <div class="text-sm text-gray-500">ahmed@jeninolive.com</div>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="text-sm text-gray-500">Jenin</div>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Verified</span>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            <div class="flex space-x-2">
+                                                                <button class="text-primary-600 hover:text-primary-900">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </button>
+                                                                <button class="text-red-600 hover:text-red-900">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                                <button class="text-yellow-600 hover:text-yellow-900">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <!-- More seller rows... -->
+                                                </tbody>
+                                            </table>
+                                            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                                                <div class="flex-1 flex justify-between sm:hidden">
+                                                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
+                                                    <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
+                                                </div>
+                                                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                                    <div>
+                                                        <p class="text-sm text-gray-700">
+                                                            Showing <span class="font-medium">1</span> to <span class="font-medium">10</span> of <span class="font-medium">42</span> results
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                                            <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                                                <span class="sr-only">Previous</span>
+                                                                <i class="fas fa-chevron-left"></i>
+                                                            </a>
+                                                            <a href="#" aria-current="page" class="z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">1</a>
+                                                            <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">2</a>
+                                                            <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">3</a>
+                                                            <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                                                <span class="sr-only">Next</span>
+                                                                <i class="fas fa-chevron-right"></i>
+                                                            </a>
+                                                        </nav>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Categories Management -->
+                        <div x-show="activeTab === 'categories'" class="space-y-6">
+                            <!-- This div will be populated by the fetchCategories function in admin.js -->
+                        </div>
+
+                        <!-- Orders Management -->
+                        <div x-show="activeTab === 'orders'" class="space-y-6">
+                            <!-- This div will be populated by the fetchOrders function in admin.js -->
+                        </div>
+
+                        <!-- Administrators Management -->
+                        <div x-show="activeTab === 'admins'" class="space-y-6">
+                            <!-- This div will be populated by the fetchAdmins function -->
+                            <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                            </div>
+                        </div>
+
+                        <!-- Other tabs would follow similar structure -->
+                        <!-- Reports, Settings, etc. -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Enhanced Add Administrator Modal -->
+    <div x-show="showAddAdminModal" class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div @click="showAddAdminModal = false" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div class="absolute top-0 right-0 pt-4 pr-4">
+                    <button @click="showAddAdminModal = false" type="button" class="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <span class="sr-only">Close</span>
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div>
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary-100">
+                        <i class="fas fa-user-shield text-primary-600"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-5">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Add New Administrator</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">Create a new administrator account with full system access.</p>
+                        </div>
+                        <div class="mt-4">
+                            <form id="add-admin-form" class="space-y-4 text-left">
+                                <div>
+                                    <label for="admin-username" class="block text-sm font-medium text-gray-700">Username <span class="text-red-500">*</span></label>
+                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-user text-gray-400"></i>
+                                        </div>
+                                        <input type="text" id="admin-username" required class="pl-10 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="admin_username">
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Username must be unique and contain only letters, numbers, and underscores.</p>
+                                </div>
+                                <div>
+                                    <label for="admin-fullname" class="block text-sm font-medium text-gray-700">Full Name <span class="text-red-500">*</span></label>
+                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-id-card text-gray-400"></i>
+                                        </div>
+                                        <input type="text" id="admin-fullname" required class="pl-10 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Full Name">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="admin-email" class="block text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span></label>
+                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-envelope text-gray-400"></i>
+                                        </div>
+                                        <input type="email" id="admin-email" required class="pl-10 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="admin@example.com">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="admin-password" class="block text-sm font-medium text-gray-700">Password <span class="text-red-500">*</span></label>
+                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-lock text-gray-400"></i>
+                                        </div>
+                                        <input type="password" id="admin-password" required class="pl-10 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="••••••••">
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Password must be at least 8 characters long and include letters and numbers.</p>
+                                </div>
+                                <div>
+                                    <label for="admin-phone" class="block text-sm font-medium text-gray-700">Phone</label>
+                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-phone text-gray-400"></i>
+                                        </div>
+                                        <input type="tel" id="admin-phone" class="pl-10 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="+1 (555) 123-4567">
+                                    </div>
+                                </div>
+                                <div class="bg-yellow-50 p-3 rounded-md">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-medium text-yellow-800">Important Notice</h3>
+                                            <div class="mt-2 text-sm text-yellow-700">
+                                                <p>Administrators have full access to the system. Only create admin accounts for trusted individuals.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <button @click="addAdmin()" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:col-start-2 sm:text-sm transition-colors duration-150">
+                        <i class="fas fa-user-plus mr-2"></i> Add Administrator
+                    </button>
+                    <button @click="showAddAdminModal = false" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:col-start-1 sm:text-sm transition-colors duration-150">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Seller Modal -->
+    <div x-show="showAddSellerModal" class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div @click="showAddSellerModal = false" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div>
+                    <div class="mt-3 text-center sm:mt-5">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Add New Seller</h3>
+                        <div class="mt-2">
+                            <form class="space-y-4">
+                                <div>
+                                    <label for="seller-name" class="block text-sm font-medium text-gray-700">Business Name</label>
+                                    <input type="text" id="seller-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label for="seller-owner" class="block text-sm font-medium text-gray-700">Owner Name</label>
+                                    <input type="text" id="seller-owner" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label for="seller-email" class="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" id="seller-email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label for="seller-phone" class="block text-sm font-medium text-gray-700">Phone</label>
+                                    <input type="tel" id="seller-phone" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label for="seller-location" class="block text-sm font-medium text-gray-700">Location</label>
+                                    <select id="seller-location" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                        <option>Select location</option>
+                                        <option>Jenin</option>
+                                        <option>Nablus</option>
+                                        <option>Ramallah</option>
+                                        <option>Hebron</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="seller-status" class="block text-sm font-medium text-gray-700">Status</label>
+                                    <select id="seller-status" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                        <option>Pending</option>
+                                        <option>Verified</option>
+                                        <option>Suspended</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <button type="button" @click="addSeller()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:col-start-2 sm:text-sm">Add Seller</button>
+                    <button type="button" @click="showAddSellerModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:col-start-1 sm:text-sm">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Seller Modal -->
+    <div x-show="showViewSellerModal" class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div @click="showViewSellerModal = false" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
+                <div>
+                    <div class="mt-3 text-center sm:mt-5">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Seller Details</h3>
+                        <div class="mt-6">
+                            <div class="bg-white overflow-hidden shadow sm:rounded-lg">
+                                <div class="px-4 py-5 sm:px-6">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-16 w-16 rounded-full overflow-hidden">
+                                            <img class="h-full w-full" src="https://picsum.photos/200?random=6" alt="Seller avatar">
+                                        </div>
+                                        <div class="ml-4">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900">Jenin Olive Farm</h3>
+                                            <p class="mt-1 max-w-2xl text-sm text-gray-500">Specializing in organic olive oil production</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+                                    <dl class="sm:divide-y sm:divide-gray-200">
+                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                            <dt class="text-sm font-medium text-gray-500">Owner name</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">Ahmed Hassan</dd>
+                                        </div>
+                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                            <dt class="text-sm font-medium text-gray-500">Email address</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">ahmed@jeninolive.com</dd>
+                                        </div>
+                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                            <dt class="text-sm font-medium text-gray-500">Phone number</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">+970 59 123 4567</dd>
+                                        </div>
+                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                            <dt class="text-sm font-medium text-gray-500">Location</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">Jenin, Palestine</dd>
+                                        </div>
+                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                            <dt class="text-sm font-medium text-gray-500">Registration date</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">March 15, 2022</dd>
+                                        </div>
+                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                            <dt class="text-sm font-medium text-gray-500">Status</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Verified</span>
+                                            </dd>
+                                        </div>
+                                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                            <dt class="text-sm font-medium text-gray-500">Products</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                                <ul class="border border-gray-200 rounded-md divide-y divide-gray-200">
+                                                    <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                                        <div class="w-0 flex-1 flex items-center">
+                                                            <i class="fas fa-wine-bottle flex-shrink-0 h-5 w-5 text-gray-400"></i>
+                                                            <span class="ml-2 flex-1 w-0 truncate">Extra Virgin Olive Oil (1L)</span>
+                                                        </div>
+                                                        <div class="ml-4 flex-shrink-0">
+                                                            <span class="font-medium text-primary-600">$12.99</span>
+                                                        </div>
+                                                    </li>
+                                                    <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                                        <div class="w-0 flex-1 flex items-center">
+                                                            <i class="fas fa-wine-bottle flex-shrink-0 h-5 w-5 text-gray-400"></i>
+                                                            <span class="ml-2 flex-1 w-0 truncate">Organic Olive Oil (5L)</span>
+                                                        </div>
+                                                        <div class="ml-4 flex-shrink-0">
+                                                            <span class="font-medium text-primary-600">$49.99</span>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <button type="button" @click="showViewSellerModal = false" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:col-start-2 sm:text-sm">Close</button>
+                    <button type="button" @click="editSeller()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:col-start-1 sm:text-sm">Edit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Panel -->
+    <div x-show="showNotifications" @click.away="showNotifications = false" class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
+        <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-medium text-gray-700">Notifications</p>
+        </div>
+        <div class="divide-y divide-gray-200">
+            <a href="#" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <img class="h-10 w-10 rounded-full" src="https://picsum.photos/200?random=7" alt="">
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">New seller registration</p>
+                        <p class="text-sm text-gray-500">Jenin Olive Farm just registered</p>
+                        <p class="text-xs text-gray-500">2 hours ago</p>
+                    </div>
+                </div>
+            </a>
+            <!-- More notification items... -->
+        </div>
+        <div class="px-4 py-2 border-t border-gray-200">
+            <a href="#" class="block text-center text-sm font-medium text-primary-600 hover:text-primary-500">View all notifications</a>
+        </div>
+    </div>
+
+    <!-- Define the adminApp function directly in the HTML to ensure it's available immediately -->
+    <script>
+        // Define the adminApp function for Alpine.js
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up adminApp');
+        });
+
+        window.adminApp = function() {
+            return {
+                // State variables
+                isLoading: true,
+                mobileMenuOpen: false,
+                profileMenuOpen: false,
+                showNotifications: false,
+                showUsersMenu: true,
+                showContentMenu: true,
+                showSettingsMenu: false,
+                activeTab: 'dashboard',
+                showAddSellerModal: false,
+                showViewSellerModal: false,
+                showAddAdminModal: false,
+
+                // Initialize the app
+                init() {
+                    console.log('Admin app initialized');
+
+                    // Fetch dashboard data immediately
+                    if (this.activeTab === 'dashboard') this.fetchDashboardData();
+                    if (this.activeTab === 'buyers') this.fetchBuyers();
+                    if (this.activeTab === 'sellers') this.fetchSellers();
+                    if (this.activeTab === 'admins') this.fetchAdmins();
+
+                    // Remove loading overlay after a short delay
+                    setTimeout(() => {
+                        this.isLoading = false;
+                        console.log('Admin app loading complete');
+                    }, 500);
+                },
+
+                // Logout function
+                logout() {
+                    console.log('Logging out...');
+
+                    // Clear token from localStorage
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('userRoles');
+                    localStorage.removeItem('userId');
+                    localStorage.removeItem('userStoreId');
+                    localStorage.removeItem('userStoreName');
+
+                    // Clear token cookie
+                    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+                    // Redirect to admin login page
+                    window.location.href = '/admin/login?logout=true';
+                },
+
+                // Tab navigation
+                setActiveTab(tab) {
+                    console.log('Setting active tab:', tab);
+                    this.activeTab = tab;
+                    this.mobileMenuOpen = false;
+
+                    // Fetch data for the selected tab
+                    if (tab === 'buyers') this.fetchBuyers();
+                    if (tab === 'sellers') this.fetchSellers();
+                    if (tab === 'admins') this.fetchAdmins();
+                    if (tab === 'products') this.fetchProducts();
+                    if (tab === 'categories') this.fetchCategories();
+                    if (tab === 'orders') this.fetchOrders();
+                },
+
+                // Get the title for the active tab
+                getActiveTabTitle() {
+                    const titles = {
+                        'dashboard': 'Dashboard',
+                        'buyers': 'Buyers Management',
+                        'sellers': 'Sellers Management',
+                        'admins': 'Administrators',
+                        'products': 'Products',
+                        'categories': 'Product Categories',
+                        'orders': 'Orders',
+                        'reports': 'Reports',
+                        'platform-settings': 'Platform Settings',
+                        'payment-methods': 'Payment Methods'
+                    };
+                    return titles[this.activeTab] || 'Dashboard';
+                },
+
+                // Toggle menu functions
+                toggleUsersMenu() {
+                    this.showUsersMenu = !this.showUsersMenu;
+                },
+
+                toggleContentMenu() {
+                    this.showContentMenu = !this.showContentMenu;
+                },
+
+                toggleSettingsMenu() {
+                    this.showSettingsMenu = !this.showSettingsMenu;
+                },
+
+                toggleNotifications() {
+                    this.showNotifications = !this.showNotifications;
+                },
+
+                // Data fetching methods
+                fetchDashboardData() {
+                    console.log('Fetching dashboard data...');
+
+                    // Get token from localStorage
+                    const token = localStorage.getItem('token');
+
+                    // Fetch dashboard statistics from API
+                    fetch('/api/admin/dashboard-stats', {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch dashboard statistics');
+                        }
+                        return response.json();
+                    })
+                    .then(stats => {
+                        // Update the dashboard cards with real data
+                        this.updateDashboardCards(stats);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching dashboard statistics:', error);
+                        // Show error toast
+                        if (typeof AdminToast !== 'undefined') {
+                            AdminToast.error('Failed to load dashboard statistics');
+                        } else {
+                            console.error('Failed to load dashboard statistics');
+                        }
+                    });
+
+                    // Also fetch other data when dashboard is loaded
+                    this.fetchBuyers();
+                    this.fetchSellers();
+                    this.fetchProducts();
+                    this.fetchCategories();
+                    this.fetchOrders();
+                },
+
+                updateDashboardCards(stats) {
+                    // Update Total Users card
+                    const totalUsersElement = document.querySelector('[data-stat="total-users"]');
+                    const userGrowthElement = document.querySelector('[data-stat="user-growth"]');
+                    if (totalUsersElement) {
+                        totalUsersElement.innerHTML = stats.totalUsers.toLocaleString();
+                    }
+                    if (userGrowthElement) {
+                        userGrowthElement.innerHTML = stats.userGrowth + '%';
+                    }
+
+                    // Update Active Sellers card
+                    const activeSellersElement = document.querySelector('[data-stat="active-sellers"]');
+                    const sellerGrowthElement = document.querySelector('[data-stat="seller-growth"]');
+                    if (activeSellersElement) {
+                        activeSellersElement.innerHTML = stats.activeSellers.toLocaleString();
+                    }
+                    if (sellerGrowthElement) {
+                        sellerGrowthElement.innerHTML = stats.sellerGrowth + '%';
+                    }
+
+                    // Update Total Products card
+                    const totalProductsElement = document.querySelector('[data-stat="total-products"]');
+                    const productGrowthElement = document.querySelector('[data-stat="product-growth"]');
+                    if (totalProductsElement) {
+                        totalProductsElement.innerHTML = stats.totalProducts.toLocaleString();
+                    }
+                    if (productGrowthElement) {
+                        productGrowthElement.innerHTML = stats.productGrowth + '%';
+                    }
+
+                    // Update Monthly Orders card
+                    const monthlyOrdersElement = document.querySelector('[data-stat="monthly-orders"]');
+                    const orderGrowthElement = document.querySelector('[data-stat="order-growth"]');
+                    if (monthlyOrdersElement) {
+                        monthlyOrdersElement.innerHTML = stats.monthlyOrders.toLocaleString();
+                    }
+                    if (orderGrowthElement) {
+                        orderGrowthElement.innerHTML = stats.orderGrowth + '%';
+                    }
+                },
+
+                fetchBuyers() {
+                    console.log('Fetching buyers...');
+
+                    // Get the buyers container
+                    const buyersContainer = document.querySelector('[x-show="activeTab === \'buyers\'"]');
+                    if (!buyersContainer) {
+                        console.error('Buyers container not found');
+                        return;
+                    }
+
+                    // Show loading state with proper padding
+                    buyersContainer.innerHTML = `
+                        <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                        </div>
+                    `;
+
+                    // Get token from localStorage
+                    const token = localStorage.getItem('token');
+
+                    // Fetch buyers from API
+                    fetch('/api/admin/buyers', {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch buyers');
+                        }
+                        return response.json();
+                    })
+                    .then(buyers => {
+                        // Log the response for debugging
+                        console.log('Buyers data:', buyers);
+
+                        // Handle different response formats
+                        let buyersData = buyers;
+
+                        // Check if the response is wrapped in a data property
+                        if (buyers.data) {
+                            buyersData = buyers.data;
+                        }
+
+                        // Check if the response is wrapped in a content property
+                        if (buyers.content) {
+                            buyersData = buyers.content;
+                        }
+
+                        // Create buyers UI
+                        this.renderBuyersUI(buyersData, buyersContainer);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching buyers:', error);
+                        buyersContainer.innerHTML = `
+                            <div class="text-center py-12 px-4 sm:px-6 lg:px-8">
+                                <p class="text-red-500">Failed to load buyers. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+                },
+
+                renderBuyersUI(buyers, container) {
+                    // Create buyers UI with proper padding
+                    container.innerHTML = '';
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'space-y-6 px-4 sm:px-6 lg:px-8';
+
+                    // Add header without add button
+                    const header = document.createElement('div');
+                    header.className = 'mb-6';
+                    header.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-900">Buyers</h2>
+                                <p class="text-sm text-gray-500 mt-1">Manage buyers and their accounts</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+                            <div class="relative flex-grow">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input id="buyer-search" type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Search buyers...">
+                            </div>
+                            <div class="flex space-x-2">
+                                <select id="buyer-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                                    <option value="all">All Status</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="inactive">Inactive Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(header);
+
+                    // Create buyers table
+                    const tableContainer = document.createElement('div');
+                    tableContainer.className = 'flex flex-col bg-white rounded-lg shadow-md overflow-hidden';
+                    tableContainer.innerHTML = `
+                        <div class="overflow-x-auto">
+                            <div class="py-2 align-middle inline-block min-w-full px-4">
+                                <div class="shadow-lg overflow-hidden border-b border-gray-200 sm:rounded-lg bg-white">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Buyer</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            ${buyers.length > 0 ? buyers.map(buyer => `
+                                                <tr>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="flex items-center">
+                                                            <div class="flex-shrink-0 h-10 w-10">
+                                                                <img class="h-10 w-10 rounded-full" src="${buyer.profileImage || '/images/buyer-placeholder.svg'}" alt="" data-buyer-id="${buyer.userId || buyer.id}">
+                                                            </div>
+                                                            <div class="ml-4">
+                                                                <div class="text-sm font-medium text-gray-900">${buyer.fullName || `${buyer.firstName || ''} ${buyer.lastName || ''}`}</div>
+                                                                <div class="text-sm text-gray-500">ID: ${buyer.userId || buyer.id}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="text-sm text-gray-900">${buyer.email}</div>
+                                                        <div class="text-sm text-gray-500">${buyer.phone || buyer.phoneNumber || 'N/A'}</div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="text-sm text-gray-900">${buyer.city || 'N/A'}, ${buyer.country || 'N/A'}</div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        ${UserStatus.renderStatusDropdown(buyer.userId, buyer.status || (buyer.isActive ? 'ACTIVE' : 'INACTIVE'), 'buyer')}
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div class="flex space-x-2">
+                                                            <button class="text-primary-600 hover:text-primary-900" data-buyer-id="${buyer.userId || buyer.id}" data-action="view">
+                                                                <i class="fas fa-eye"></i>
+                                                            </button>
+                                                            <button class="text-indigo-600 hover:text-indigo-900" data-buyer-id="${buyer.userId || buyer.id}" data-action="edit">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="${buyer.isActive ? 'text-amber-600 hover:text-amber-900 bg-amber-50' : 'text-green-600 hover:text-green-900 bg-green-50'} p-1.5 rounded-md transition-colors duration-150" data-buyer-id="${buyer.userId || buyer.id}" data-action="toggle-status" title="${buyer.isActive ? 'Deactivate' : 'Activate'} buyer" onclick="updateUserStatus('${buyer.userId || buyer.id}', '${buyer.isActive ? 'INACTIVE' : 'ACTIVE'}', 'buyer'); return false;">
+                                                                <i class="fas ${buyer.isActive ? 'fa-ban' : 'fa-check'}"></i>
+                                                            </button>
+                                                            <button class="text-red-600 hover:text-red-900" data-buyer-id="${buyer.userId || buyer.id}" data-action="delete">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : `
+                                                <tr>
+                                                    <td colspan="5" class="px-6 py-12 whitespace-nowrap text-center">
+                                                        <div class="flex flex-col items-center justify-center">
+                                                            <i class="fas fa-users text-gray-300 text-5xl mb-4"></i>
+                                                            <p class="text-lg font-medium text-gray-500 mb-1">No buyers registered yet</p>
+                                                            <p class="text-sm text-gray-400">There are currently no buyers in the system</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(tableContainer);
+
+                    // Add pagination only if there are buyers
+                    if (buyers.length > 0) {
+                        const pagination = document.createElement('div');
+                        pagination.className = 'bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-4';
+                        pagination.innerHTML = `
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Previous
+                                </a>
+                                <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Next
+                                </a>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Showing <span class="font-medium">1</span> to <span class="font-medium">${Math.min(10, buyers.length)}</span> of <span class="font-medium">${buyers.length}</span> results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                            <span class="sr-only">Previous</span>
+                                            <i class="fas fa-chevron-left h-5 w-5"></i>
+                                        </a>
+                                        <a href="#" aria-current="page" class="z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                            1
+                                        </a>
+                                        <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                            2
+                                        </a>
+                                        <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium">
+                                            3
+                                        </a>
+                                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                            ...
+                                        </span>
+                                        <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                            10
+                                        </a>
+                                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                            <span class="sr-only">Next</span>
+                                            <i class="fas fa-chevron-right h-5 w-5"></i>
+                                        </a>
+                                    </nav>
+                                </div>
+                            </div>
+                        `;
+                        contentDiv.appendChild(pagination);
+                    }
+
+                    container.appendChild(contentDiv);
+
+                    // Add event listeners for the buttons
+                    const viewButtons = container.querySelectorAll('[data-action="view"]');
+                    const editButtons = container.querySelectorAll('[data-action="edit"]');
+                    const deleteButtons = container.querySelectorAll('[data-action="delete"]');
+
+                    viewButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const buyerId = button.getAttribute('data-buyer-id');
+                            console.log('View buyer:', buyerId);
+                            // Implement view buyer functionality
+                        });
+                    });
+
+                    editButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const buyerId = button.getAttribute('data-buyer-id');
+                            console.log('Edit buyer:', buyerId);
+                            // Implement edit buyer functionality
+                        });
+                    });
+
+                    deleteButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const buyerId = button.getAttribute('data-buyer-id');
+                            console.log('Delete buyer:', buyerId);
+                            // Implement delete buyer functionality
+                        });
+                    });
+                },
+
+                fetchSellers() {
+                    console.log('Fetching sellers...');
+                    const sellersContainer = document.querySelector('[x-show="activeTab === \'sellers\'"]');
+                    if (!sellersContainer) {
+                        console.error('Sellers container not found');
+                        return;
+                    }
+
+                    // Show loading state
+                    sellersContainer.innerHTML = `
+                        <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                        </div>
+                    `;
+
+                    // Get token from localStorage
+                    const token = localStorage.getItem('token');
+
+                    // Fetch sellers from API
+                    fetch('/api/admin/sellers', {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch sellers');
+                        }
+                        return response.json();
+                    })
+                    .then(sellers => {
+                        // Log the response for debugging
+                        console.log('Sellers data:', sellers);
+
+                        // Handle different response formats
+                        let sellersData = sellers;
+
+                        // Check if the response is wrapped in a data property
+                        if (sellers.data) {
+                            sellersData = sellers.data;
+                        }
+
+                        // Check if the response is wrapped in a content property
+                        if (sellers.content) {
+                            sellersData = sellers.content;
+                        }
+
+                        // Filter out invalid seller data
+                        sellersData = sellersData.filter(seller => {
+                            return seller && (seller.userId || seller.id) && seller.email;
+                        });
+
+                        console.log('Valid sellers:', sellersData.length);
+
+                        // Debug: Log the first seller to see its structure
+                        if (sellersData.length > 0) {
+                            console.log('First seller data:', JSON.stringify(sellersData[0], null, 2));
+                            console.log('Seller status properties:', {
+                                status: sellersData[0].status,
+                                isActive: sellersData[0].isActive,
+                                isBanned: sellersData[0].isBanned,
+                                isEnabled: sellersData[0].isEnabled
+                            });
+                        }
+
+                        // Ensure all sellers have proper status properties
+                        sellersData = sellersData.map(seller => {
+                            // If status is not set, determine it from other properties
+                            if (!seller.status) {
+                                if (seller.isBanned === true) {
+                                    seller.status = 'BANNED';
+                                } else if (seller.isActive === false) {
+                                    seller.status = 'INACTIVE';
+                                } else {
+                                    seller.status = 'ACTIVE';
+                                }
+                            }
+                            return seller;
+                        });
+
+                        // Create sellers UI
+                        this.renderSellersUI(sellersData, sellersContainer);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching sellers:', error);
+                        sellersContainer.innerHTML = `
+                            <div class="text-center py-12 px-4 sm:px-6 lg:px-8">
+                                <p class="text-red-500">Failed to load sellers. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+                },
+
+                renderSellersUI(sellers, container) {
+                    // Create sellers UI with proper padding
+                    container.innerHTML = '';
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'space-y-6 px-4 sm:px-6 lg:px-8';
+
+                    // Add enhanced header with search and add button
+                    const header = document.createElement('div');
+                    header.className = 'mb-6';
+                    header.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-900">Sellers</h2>
+                                <p class="text-sm text-gray-500 mt-1">Manage sellers and their stores</p>
+                            </div>
+                            <button id="add-seller-btn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
+                                <i class="fas fa-plus mr-2"></i> Add Seller
+                            </button>
+                        </div>
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+                            <div class="relative flex-grow">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input id="seller-search" type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Search sellers...">
+                            </div>
+                            <div class="flex space-x-2">
+                                <select id="seller-region-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                                    <option value="all">All Regions</option>
+                                    <option value="north">North</option>
+                                    <option value="central">Central</option>
+                                    <option value="south">South</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(header);
+
+                    // Create sellers table
+                    const tableContainer = document.createElement('div');
+                    tableContainer.className = 'flex flex-col bg-white rounded-lg shadow-md overflow-hidden';
+                    tableContainer.innerHTML = `
+                        <div class="overflow-x-auto">
+                            <div class="py-2 align-middle inline-block min-w-full px-4">
+                                <div class="shadow-lg overflow-hidden border-b border-gray-200 sm:rounded-lg bg-white">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            ${sellers.filter(seller => seller && (seller.userId || seller.id) && seller.email).length > 0 ? sellers.filter(seller => seller && (seller.userId || seller.id) && seller.email).map(seller => `
+                                                <tr>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="flex items-center">
+                                                            <div class="flex-shrink-0 h-10 w-10">
+                                                                <img class="h-10 w-10 rounded-full store-logo" src="${seller.storeLogoUrl || seller.storeLogo || seller.profileImage || '/images/store-placeholder.svg'}" alt="" data-seller-id="${seller.userId || seller.id}">
+                                                            </div>
+                                                            <div class="ml-4">
+                                                                <div class="text-sm font-medium text-gray-900">${seller.storeName || 'Unnamed Store'}</div>
+                                                                <div class="text-sm text-gray-500">${seller.productCount ? `${seller.productCount} products` : ''}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="text-sm text-gray-900">${seller.fullName || `${seller.firstName || ''} ${seller.lastName || ''}`}</div>
+                                                        <div class="text-sm text-gray-500">${seller.email || ''}</div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="text-sm text-gray-500">${seller.city || seller.location || 'N/A'}</div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        ${UserStatus.renderStatusBadge(seller.status || (seller.isActive === false ? 'INACTIVE' : seller.isBanned === true ? 'BANNED' : 'ACTIVE'))}
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div class="flex space-x-2">
+                                                            <a href="/admin/store-details?id=${seller.userId || seller.id}" class="text-primary-600 hover:text-primary-900" title="View seller details">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                            <button class="text-indigo-600 hover:text-indigo-900" data-seller-id="${seller.userId || seller.id}" data-action="edit" title="Edit seller">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="text-amber-600 hover:text-amber-900 bg-amber-50 p-1.5 rounded-md" data-seller-id="${seller.userId || seller.id}" data-action="block" data-current-status="${seller.status}" title="${(seller.status === 'BANNED') ? 'Unblock' : 'Block'} seller">
+                                                                <i class="fas ${(seller.status === 'BANNED') ? 'fa-unlock' : 'fa-ban'}"></i>
+                                                            </button>
+                                                            <button class="text-red-600 hover:text-red-900" data-seller-id="${seller.userId || seller.id}" data-action="delete" title="Delete seller">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : `
+                                                <tr>
+                                                    <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                                        No valid sellers found.
+                                                    </td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(tableContainer);
+
+                    // Add pagination
+                    const pagination = document.createElement('div');
+                    pagination.className = 'bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-4';
+                    pagination.innerHTML = `
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Previous
+                            </a>
+                            <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Next
+                            </a>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing <span class="font-medium">1</span> to <span class="font-medium">${Math.min(10, sellers.length)}</span> of <span class="font-medium">${sellers.length}</span> results
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Previous</span>
+                                        <i class="fas fa-chevron-left h-5 w-5"></i>
+                                    </a>
+                                    <a href="#" aria-current="page" class="z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        1
+                                    </a>
+                                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        2
+                                    </a>
+                                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium">
+                                        3
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Next</span>
+                                        <i class="fas fa-chevron-right h-5 w-5"></i>
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(pagination);
+
+                    container.appendChild(contentDiv);
+
+                    // Add event listeners for the buttons
+                    const editButtons = container.querySelectorAll('[data-action="edit"]');
+                    const blockButtons = container.querySelectorAll('[data-action="block"]');
+                    const deleteButtons = container.querySelectorAll('[data-action="delete"]');
+
+                    editButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const sellerId = button.getAttribute('data-seller-id');
+                            console.log('Edit seller:', sellerId);
+                            // Implement edit seller functionality
+                        });
+                    });
+
+                    blockButtons.forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const sellerId = button.getAttribute('data-seller-id');
+                            const row = button.closest('tr');
+                            const statusCell = row.querySelector('td:nth-child(4)');
+                            const statusText = statusCell.textContent.trim();
+                            // Get the current status from the data attribute
+                            const currentStatus = button.getAttribute('data-current-status');
+                            const isBanned = currentStatus === 'BANNED';
+                            console.log('Current status:', currentStatus, 'isBanned:', isBanned);
+                            const newStatus = isBanned ? 'ACTIVE' : 'BANNED';
+
+                            console.log(`${isBanned ? 'Unblock' : 'Block'} seller:`, sellerId);
+
+                            // Confirm before blocking/unblocking
+                            if (confirm(`Are you sure you want to ${isBanned ? 'unblock' : 'block'} this seller?`)) {
+                                // Call updateUserStatus to change the status
+                                try {
+                                    updateUserStatus(sellerId, newStatus, 'seller', event);
+                                } catch (error) {
+                                    console.error('Error updating seller status:', error);
+                                    alert('Failed to update seller status. Please try again.');
+                                }
+                            }
+                        });
+                    });
+
+                    deleteButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const sellerId = button.getAttribute('data-seller-id');
+                            console.log('Delete seller:', sellerId);
+                            // Implement delete seller functionality
+                        });
+                    });
+
+                    // Add event listeners for the region filter
+                    const regionFilter = container.querySelector('#seller-region-filter');
+                    if (regionFilter) {
+                        regionFilter.addEventListener('change', (e) => {
+                            const filterValue = e.target.value;
+                            const rows = container.querySelectorAll('tbody tr');
+
+                            rows.forEach(row => {
+                                const locationCell = row.querySelector('td:nth-child(3)');
+                                if (!locationCell) return;
+
+                                const locationText = locationCell.textContent.trim().toLowerCase();
+
+                                if (filterValue === 'all') {
+                                    row.style.display = '';
+                                } else if (filterValue === 'north' && locationText.includes('north')) {
+                                    row.style.display = '';
+                                } else if (filterValue === 'central' && locationText.includes('central')) {
+                                    row.style.display = '';
+                                } else if (filterValue === 'south' && locationText.includes('south')) {
+                                    row.style.display = '';
+                                } else {
+                                    row.style.display = 'none';
+                                }
+                            });
+                        });
+                    }
+                },
+
+                fetchAdmins() {
+                    console.log('Fetching administrators...');
+                    const adminsContainer = document.querySelector('[x-show="activeTab === \'admins\'"]');
+                    if (!adminsContainer) {
+                        console.error('Admins container not found');
+                        return;
+                    }
+
+                    // Show loading state
+                    adminsContainer.innerHTML = `
+                        <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                        </div>
+                    `;
+
+                    // Get token from localStorage
+                    const token = localStorage.getItem('token');
+
+                    // Fetch admins from API
+                    fetch('/api/admin/admins', {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch administrators');
+                        }
+                        return response.json();
+                    })
+                    .then(admins => {
+                        // Log the response for debugging
+                        console.log('Admins data:', admins);
+
+                        // Handle different response formats
+                        let adminsData = admins;
+
+                        // Check if the response is wrapped in a data property
+                        if (admins.data) {
+                            adminsData = admins.data;
+                        }
+
+                        // Check if the response is wrapped in a content property
+                        if (admins.content) {
+                            adminsData = admins.content;
+                        }
+
+                        // Create admins UI
+                        this.renderAdminsUI(adminsData, adminsContainer);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching administrators:', error);
+                        adminsContainer.innerHTML = `
+                            <div class="text-center py-12 px-4 sm:px-6 lg:px-8">
+                                <p class="text-red-500">Failed to load administrators. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+                },
+
+                renderAdminsUI(admins, container) {
+                    // Create admins UI with proper padding
+                    container.innerHTML = '';
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'space-y-6 px-4 sm:px-6 lg:px-8';
+
+                    // Add enhanced header with search and add button
+                    const header = document.createElement('div');
+                    header.className = 'mb-6';
+                    header.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-900">Administrators</h2>
+                                <p class="text-sm text-gray-500 mt-1">Manage system administrators</p>
+                            </div>
+                            <button id="add-admin-btn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
+                                <i class="fas fa-plus mr-2"></i> Add Administrator
+                            </button>
+                        </div>
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+                            <div class="relative flex-grow">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input id="admin-search" type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Search administrators...">
+                            </div>
+                            <div class="flex space-x-2">
+                                <select id="admin-filter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                                    <option value="all">All Status</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="inactive">Inactive Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(header);
+
+                    // Create admins table
+                    const tableContainer = document.createElement('div');
+                    tableContainer.className = 'flex flex-col bg-white rounded-lg shadow-md overflow-hidden';
+                    tableContainer.innerHTML = `
+                        <div class="overflow-x-auto">
+                            <div class="py-2 align-middle inline-block min-w-full px-4">
+                                <div class="shadow-lg overflow-hidden border-b border-gray-200 sm:rounded-lg bg-white">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Administrator</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            ${admins.map(admin => `
+                                                <tr>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="flex items-center">
+                                                            <div class="flex-shrink-0 h-10 w-10">
+                                                                <img class="h-10 w-10 rounded-full admin-profile-image" src="${admin.profileImage || '/images/admin-placeholder.svg'}" alt="" data-admin-id="${admin.userId || admin.id}">
+                                                            </div>
+                                                            <div class="ml-4">
+                                                                <div class="text-sm font-medium text-gray-900">${admin.fullName || `${admin.firstName || ''} ${admin.lastName || ''}`}</div>
+                                                                <div class="text-sm text-gray-500">ID: ${admin.userId || admin.id}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="text-sm text-gray-900">${admin.email || ''}</div>
+                                                        <div class="text-sm text-gray-500">${admin.phone || admin.phoneNumber || 'N/A'}</div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <div class="text-sm text-gray-900">${admin.role || (admin.roles && admin.roles.length > 0 ? admin.roles[0] : 'Administrator')}</div>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${(admin.enabled || admin.active) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                                            ${(admin.enabled || admin.active) ? 'Active' : 'Inactive'}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div class="flex space-x-2">
+                                                            <button class="text-primary-600 hover:text-primary-900" data-admin-id="${admin.userId || admin.id}" data-action="view">
+                                                                <i class="fas fa-eye"></i>
+                                                            </button>
+                                                            <button class="text-indigo-600 hover:text-indigo-900" data-admin-id="${admin.userId || admin.id}" data-action="edit">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="text-red-600 hover:text-red-900" data-admin-id="${admin.userId || admin.id}" data-action="delete">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(tableContainer);
+
+                    // Add pagination
+                    const pagination = document.createElement('div');
+                    pagination.className = 'bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-4';
+                    pagination.innerHTML = `
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Previous
+                            </a>
+                            <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Next
+                            </a>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing <span class="font-medium">1</span> to <span class="font-medium">${Math.min(10, admins.length)}</span> of <span class="font-medium">${admins.length}</span> results
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Previous</span>
+                                        <i class="fas fa-chevron-left h-5 w-5"></i>
+                                    </a>
+                                    <a href="#" aria-current="page" class="z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        1
+                                    </a>
+                                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        2
+                                    </a>
+                                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium">
+                                        3
+                                    </a>
+                                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <span class="sr-only">Next</span>
+                                        <i class="fas fa-chevron-right h-5 w-5"></i>
+                                    </a>
+                                </nav>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.appendChild(pagination);
+
+                    container.appendChild(contentDiv);
+
+                    // Add event listeners for the buttons
+                    const viewButtons = container.querySelectorAll('[data-action="view"]');
+                    const editButtons = container.querySelectorAll('[data-action="edit"]');
+                    const deleteButtons = container.querySelectorAll('[data-action="delete"]');
+
+                    viewButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const adminId = button.getAttribute('data-admin-id');
+                            console.log('View admin:', adminId);
+                            // Implement view admin functionality
+                        });
+                    });
+
+                    editButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const adminId = button.getAttribute('data-admin-id');
+                            console.log('Edit admin:', adminId);
+                            // Implement edit admin functionality
+                        });
+                    });
+
+                    deleteButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const adminId = button.getAttribute('data-admin-id');
+                            console.log('Delete admin:', adminId);
+                            // Implement delete admin functionality
+                        });
+                    });
+                },
+
+                fetchProducts() {
+                    console.log('Fetching products...');
+                    // Similar implementation as fetchBuyers
+                    const productsContainer = document.querySelector('[x-show="activeTab === \'products\'"]');
+                    if (!productsContainer) {
+                        console.error('Products container not found');
+                        return;
+                    }
+
+                    // Show loading state
+                    productsContainer.innerHTML = `
+                        <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                        </div>
+                    `;
+
+                    // Get token from localStorage
+                    const token = localStorage.getItem('token');
+
+                    // Fetch products from API
+                    fetch('/api/admin/products', {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch products');
+                        }
+                        return response.json();
+                    })
+                    .then(products => {
+                        // Create products UI
+                        // This line is commented out to allow products.js to handle the rendering
+                        // productsContainer.innerHTML = `<div class="p-4">Products data loaded successfully</div>`;
+                        // Instead, we'll call our external products module
+                        if (typeof productModule !== 'undefined' && productModule.renderProductsUI) {
+                            productModule.renderProductsUI(products, productsContainer);
+                            productModule.setupEventListeners(productsContainer);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching products:', error);
+                        productsContainer.innerHTML = `
+                            <div class="text-center py-12 px-4 sm:px-6 lg:px-8">
+                                <p class="text-red-500">Failed to load products. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+                },
+
+                fetchCategories() {
+                    console.log('Fetching categories...');
+                    // Similar implementation as fetchBuyers
+                    const categoriesContainer = document.querySelector('[x-show="activeTab === \'categories\'"]');
+                    if (!categoriesContainer) {
+                        console.error('Categories container not found');
+                        return;
+                    }
+
+                    // Show loading state
+                    categoriesContainer.innerHTML = `
+                        <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                        </div>
+                    `;
+
+                    // Get token from localStorage
+                    const token = localStorage.getItem('token');
+
+                    // Fetch categories from API
+                    fetch('/api/admin/categories', {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch categories');
+                        }
+                        return response.json();
+                    })
+                    .then(categories => {
+                        // Create categories UI
+                        // This line is commented out to allow categories.js to handle the rendering
+                        // categoriesContainer.innerHTML = `<div class="p-4">Categories data loaded successfully</div>`;
+                        // Instead, we'll call our external categories module
+                        if (typeof window.categoriesManager !== 'undefined') {
+                            window.categoriesManager.fetchCategories();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching categories:', error);
+                        categoriesContainer.innerHTML = `
+                            <div class="text-center py-12 px-4 sm:px-6 lg:px-8">
+                                <p class="text-red-500">Failed to load categories. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+                },
+
+                fetchOrders() {
+                    console.log('Fetching orders...');
+                    // Similar implementation as fetchBuyers
+                    const ordersContainer = document.querySelector('[x-show="activeTab === \'orders\'"]');
+                    if (!ordersContainer) {
+                        console.error('Orders container not found');
+                        return;
+                    }
+
+                    // Show loading state
+                    ordersContainer.innerHTML = `
+                        <div class="flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                        </div>
+                    `;
+
+                    // Get token from localStorage
+                    const token = localStorage.getItem('token');
+
+                    // Fetch orders from API
+                    fetch('/api/admin/orders', {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : '',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch orders');
+                        }
+                        return response.json();
+                    })
+                    .then(orders => {
+                        // Create orders UI
+                        ordersContainer.innerHTML = `<div class="p-4">Orders data loaded successfully</div>`;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching orders:', error);
+                        ordersContainer.innerHTML = `
+                            <div class="text-center py-12 px-4 sm:px-6 lg:px-8">
+                                <p class="text-red-500">Failed to load orders. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+                }
+            };
+        };
+
+        // Make logout function globally available
+        window.logout = function() {
+            console.log('Global logout function called');
+
+            // Clear token from localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRoles');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userStoreId');
+            localStorage.removeItem('userStoreName');
+
+            // Clear token cookie
+            document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+            // Redirect to admin login page
+            window.location.href = '/admin/login?logout=true';
+        };
+    </script>
+
+    <!-- Load Alpine.js before other scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.2/dist/cdn.min.js"></script>
+
+    <!-- Load admin module scripts -->
+    <script src="/js/admin/admin-core.js"></script>
+    <!-- Load module scripts first so they're available for the dashboard script -->
+    <script src="/js/admin/products.js"></script>
+    <script src="/js/admin/categories.js"></script>
+    <script src="/js/admin/admin-dashboard.js"></script>
+    <script src="/js/admin/admin-users.js"></script>
+    <script src="/js/admin/adminApp.js"></script>
+    <script src="/js/admin/admin-main.js"></script>
+</body>
+</html>
