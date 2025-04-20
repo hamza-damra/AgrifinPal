@@ -17,7 +17,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     // Safer version of find by email to avoid duplicate results due to roles
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles WHERE u.email = :email")
     Optional<User> findDistinctByEmail(@Param("email") String email);
-
+    Optional<User> findByEmail(String email);
     // Optional safe version of findByUsername (also avoids duplicate results)
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles WHERE u.username = :username")
     Optional<User> findDistinctByUsername(@Param("username") String username);

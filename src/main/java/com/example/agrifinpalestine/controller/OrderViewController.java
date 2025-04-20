@@ -51,7 +51,7 @@ public class OrderViewController {
 
         // Get user details
         Optional<User> userOptional = userRepository.findById(userId);
-        if (!userOptional.isPresent()) {
+        if (userOptional.isEmpty()) {
             logger.warn("User not found with ID: {}", userId);
             return "redirect:/login";
         }
