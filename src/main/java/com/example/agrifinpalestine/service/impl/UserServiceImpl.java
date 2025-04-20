@@ -64,7 +64,7 @@ public class UserServiceImpl implements UserService {
     public LoginResponse authenticateUser(LoginRequest loginRequest) {
         try {
             // First check if the user exists and is active
-            Optional<User> userOptional = userRepository.findByUsername(loginRequest.getUsername());
+            Optional<User> userOptional = userRepository.findDistinctByUsername(loginRequest.getUsername());
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
 
@@ -144,7 +144,7 @@ public class UserServiceImpl implements UserService {
     public RegistrationResponse registerUser(RegistrationRequest registrationRequest) {
         try {
             // Check if username already exists
-            if (userRepository.findByUsername(registrationRequest.getUsername()).isPresent()) {
+            if (userRepository.findDistinctByUsername(registrationRequest.getUsername()).isPresent()) {
                 return RegistrationResponse.builder()
                         .message("Username already exists")
                         .success(false)

@@ -546,7 +546,7 @@ public class AdminController {
     public ResponseEntity<?> createAdminUser(@RequestBody RegistrationRequest request) {
         try {
             // Check if username already exists
-            if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            if (userRepository.findDistinctByUsername(request.getUsername()).isPresent()) {
                 return ResponseEntity.badRequest().body(new ApiResponse(false, "Username already exists"));
             }
 

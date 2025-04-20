@@ -2,6 +2,8 @@ package com.example.agrifinpalestine.Repository;
 
 import com.example.agrifinpalestine.Entity.Role;
 import com.example.agrifinpalestine.Entity.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Integer> {
+
+    Logger logger = LoggerFactory.getLogger(UserRepository.class);
 
     // Find by username
     Optional<User> findByUsername(String username);
@@ -21,7 +25,15 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     // Find by email returning at most one result
     default Optional<User> findDistinctByEmail(String email) {
         List<User> users = findByEmailList(email);
-        return users.isEmpty() ? Optional.empty() : Optional.of(users.get(0));
+        if (users.isEmpty()) {
+            return Optional.empty();
+        } else if (users.size() > 1) {
+            // Log a warning and return the first user
+            logger.warn("Multiple users found with email: {}. Returning the first one.", email);
+            return Optional.of(users.get(0));
+        } else {
+            return Optional.of(users.get(0));
+        }
     }
 
     // Remove the redundant findByEmail method
