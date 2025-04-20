@@ -23,7 +23,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Copy the built JAR file from the build stage
-COPY --from=build /app/target/agrifinpalestine-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/AgrifinPalestine-0.0.1-SNAPSHOT.jar app.jar
 
 # Expose the port the app runs on
 EXPOSE 8080
