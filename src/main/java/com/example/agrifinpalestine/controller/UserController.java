@@ -52,10 +52,10 @@ public class UserController {
             if (userUpdateRequest.getFullName() != null) {
                 user.setFullName(userUpdateRequest.getFullName());
             }
-            
+
             if (userUpdateRequest.getEmail() != null) {
                 // Check if email is already taken by another user
-                userRepository.findByEmail(userUpdateRequest.getEmail())
+                userRepository.findDistinctByEmail(userUpdateRequest.getEmail())
                         .ifPresent(existingUser -> {
                             if (!existingUser.getUserId().equals(userId)) {
                                 throw new RuntimeException("Email is already in use");
@@ -63,33 +63,33 @@ public class UserController {
                         });
                 user.setEmail(userUpdateRequest.getEmail());
             }
-            
+
             if (userUpdateRequest.getPhone() != null) {
                 user.setPhone(userUpdateRequest.getPhone());
             }
-            
+
             if (userUpdateRequest.getRegion() != null) {
                 user.setRegion(userUpdateRequest.getRegion());
             }
-            
+
             if (userUpdateRequest.getAgricultureType() != null) {
                 user.setAgricultureType(userUpdateRequest.getAgricultureType());
             }
-            
+
             if (userUpdateRequest.getBio() != null) {
                 user.setBio(userUpdateRequest.getBio());
             }
-            
+
             if (userUpdateRequest.getProfileImage() != null) {
                 user.setProfileImage(userUpdateRequest.getProfileImage());
             }
-            
+
             // Update the updatedAt timestamp
             user.setUpdatedAt(LocalDateTime.now());
-            
+
             // Save the updated user
             User updatedUser = userRepository.save(user);
-            
+
             // Create response
             Map<String, Object> response = new HashMap<>();
             response.put("userId", updatedUser.getUserId());
@@ -103,7 +103,7 @@ public class UserController {
             response.put("profileImage", updatedUser.getProfileImage());
             response.put("updatedAt", updatedUser.getUpdatedAt());
             response.put("message", "Profile updated successfully");
-            
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, String> errorResponse = new HashMap<>();

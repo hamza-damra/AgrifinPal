@@ -3,11 +3,9 @@ package com.example.agrifinpalestine.service.impl;
 import com.example.agrifinpalestine.Entity.Cart;
 import com.example.agrifinpalestine.Entity.CartStatus;
 import com.example.agrifinpalestine.Entity.Role;
-import com.example.agrifinpalestine.Entity.Role.ERole;
 import com.example.agrifinpalestine.Entity.User;
 import com.example.agrifinpalestine.Entity.UserStatus;
 import com.example.agrifinpalestine.Repository.CartRepository;
-import com.example.agrifinpalestine.Repository.RoleRepository;
 import com.example.agrifinpalestine.Repository.UserRepository;
 import com.example.agrifinpalestine.dto.LoginRequest;
 import com.example.agrifinpalestine.dto.LoginResponse;
@@ -16,7 +14,6 @@ import com.example.agrifinpalestine.dto.RegistrationResponse;
 import com.example.agrifinpalestine.security.TokenManager;
 import com.example.agrifinpalestine.security.RoleManager;
 import com.example.agrifinpalestine.security.UserDetailsImpl;
-import com.example.agrifinpalestine.service.CartService;
 import com.example.agrifinpalestine.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +31,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,8 +50,8 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
-                          PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager,
-                          TokenManager tokenManager, RoleManager roleManager, CartRepository cartRepository) {
+                           PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager,
+                           TokenManager tokenManager, RoleManager roleManager, CartRepository cartRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -73,18 +69,14 @@ public class UserServiceImpl implements UserService {
                 User user = userOptional.get();
 
                 // Check if user is active
-                if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+                if (!user.isActive()) {
+                    String statusMessage = user.getStatus() != null 
+                        ? "Your account is " + user.getStatus().toString().toLowerCase() + ". Please contact support."
+                        : "Your account is inactive. Please contact support.";
+
                     logger.warn("Login attempt for inactive user: {}, status: {}", user.getUsername(), user.getStatus());
                     return LoginResponse.builder()
-                            .message("Your account is " + user.getStatus().toString().toLowerCase() + ". Please contact support.")
-                            .success(false)
-                            .build();
-                }
-
-                if (user.getIsActive() != null && !user.getIsActive()) {
-                    logger.warn("Login attempt for inactive user: {}", user.getUsername());
-                    return LoginResponse.builder()
-                            .message("Your account is inactive. Please contact support.")
+                            .message(statusMessage)
                             .success(false)
                             .build();
                 }
@@ -233,6 +225,7 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
     }
+
 
     /**
      * Create a new cart for a user with the buyer role

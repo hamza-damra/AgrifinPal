@@ -472,7 +472,7 @@ public class AdminController {
     /**
      * Update administrator status
      * @param id The user ID of the administrator
-     * @param UserStatus The new status
+     * @param statusName The new status
      * @return Response with success or error message
      */
     @PutMapping("/admins/{id}/status")
@@ -551,7 +551,7 @@ public class AdminController {
             }
 
             // Check if email already exists
-            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            if (userRepository.findDistinctByEmail(request.getEmail()).isPresent()) {
                 return ResponseEntity.badRequest().body(new ApiResponse(false, "Email already exists"));
             }
 
